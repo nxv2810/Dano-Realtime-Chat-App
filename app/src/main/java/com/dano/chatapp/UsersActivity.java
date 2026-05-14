@@ -2,7 +2,6 @@ package com.dano.chatapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -45,9 +44,12 @@ public class UsersActivity extends AppCompatActivity {
         recyclerUsers.setLayoutManager(new LinearLayoutManager(this));
 
         userList = new ArrayList<>();
+        // Cập nhật: Khi click vào user sẽ mở ChatActivity
         adapter = new UserAdapter(userList, user -> {
-            // Xử lý khi click vào một người dùng (ví dụ: mở màn hình chat riêng)
-            Toast.makeText(UsersActivity.this, "Chat với: " + user.getName(), Toast.LENGTH_SHORT).show();
+            Intent intent = new Intent(UsersActivity.this, ChatActivity.class);
+            intent.putExtra("userId", user.getUid());
+            intent.putExtra("userName", user.getName());
+            startActivity(intent);
         });
         recyclerUsers.setAdapter(adapter);
 
@@ -61,7 +63,6 @@ public class UsersActivity extends AppCompatActivity {
                 userList.clear();
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     User user = dataSnapshot.getValue(User.class);
-                    // Không hiển thị chính bản thân mình trong danh sách
                     if (user != null && !user.getUid().equals(currentUserId)) {
                         userList.add(user);
                     }
