@@ -9,16 +9,31 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Register to Dano"
+        android:text="Tạo tài khoản mới"
         android:textSize="24sp"
         android:textStyle="bold"
-        android:layout_marginBottom="32dp"/>
+        android:layout_marginBottom="8dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Kết nối liền mạch cùng hàng triệu người dùng Dano"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <EditText
+        android:id="@+id/edit_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Họ và Tên"
+        android:inputType="textPersonName"
+        android:layout_marginBottom="8dp"/>
 
     <EditText
         android:id="@+id/edit_email"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Email"
+        android:hint="Email hoặc Số điện thoại"
         android:inputType="textEmailAddress"
         android:layout_marginBottom="8dp"/>
 
@@ -26,21 +41,36 @@
         android:id="@+id/edit_password"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Password"
+        android:hint="Mật khẩu"
+        android:inputType="textPassword"
+        android:layout_marginBottom="8dp"/>
+
+    <EditText
+        android:id="@+id/edit_confirm_password"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Xác nhận mật khẩu"
         android:inputType="textPassword"
         android:layout_marginBottom="16dp"/>
+
+    <CheckBox
+        android:id="@+id/checkbox_terms"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Tôi đồng ý với Điều khoản dịch vụ và Chính sách bảo mật của Dano."
+        android:layout_marginBottom="24dp"/>
 
     <Button
         android:id="@+id/button_register"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Register"/>
+        android:text="Đăng ký ngay"/>
 
     <TextView
         android:id="@+id/text_login"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Already have an account? Login here"
+        android:text="Bạn đã có tài khoản? Quay lại Đăng nhập"
         android:layout_marginTop="16dp"
         android:textColor="@color/design_default_color_primary"/>
 
