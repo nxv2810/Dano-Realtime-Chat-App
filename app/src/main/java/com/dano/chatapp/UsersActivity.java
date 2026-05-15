@@ -2,6 +2,9 @@ package com.dano.chatapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -22,8 +25,10 @@ import java.util.List;
 public class UsersActivity extends AppCompatActivity {
 
     private RecyclerView recyclerUsers;
+    private EditText editSearch;
     private UserAdapter adapter;
     private List<User> userList;
+    private List<User> fullUserList; // Danh sách gốc để lọc
     private DatabaseReference mDatabase;
     private String currentUserId;
 
@@ -32,19 +37,19 @@ public class UsersActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_users);
 
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("Danh sách người dùng");
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-
+        // Firebase Setup
         currentUserId = FirebaseAuth.getInstance().getUid();
         mDatabase = FirebaseDatabase.getInstance().getReference().child("users");
 
+        // View Binding
         recyclerUsers = findViewById(R.id.recycler_users);
+        editSearch = findViewById(R.id.edit_search_users);
+        
         recyclerUsers.setLayoutManager(new LinearLayoutManager(this));
 
         userList = new ArrayList<>();
-        // Cập nhật: Khi click vào user sẽ mở ChatActivity
+        fullUserList = new ArrayList<>();
+        
         adapter = new UserAdapter(userList, user -> {
             Intent intent = new Intent(UsersActivity.this, ChatActivity.class);
             intent.putExtra("userId", user.getUid());
@@ -54,19 +59,36 @@ public class UsersActivity extends AppCompatActivity {
         recyclerUsers.setAdapter(adapter);
 
         fetchUsers();
+
+        // Logic Tìm kiếm
+        editSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                searchUsers(s.toString());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
     }
 
     private void fetchUsers() {
         mDatabase.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                userList.clear();
+                fullUserList.clear();
                 for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
                     User user = dataSnapshot.getValue(User.class);
                     if (user != null && !user.getUid().equals(currentUserId)) {
-                        userList.add(user);
+                        fullUserList.add(user);
                     }
                 }
+                // Ban đầu hiển thị tất cả
+                userList.clear();
+                userList.addAll(fullUserList);
                 adapter.notifyDataSetChanged();
             }
 
@@ -77,9 +99,19 @@ public class UsersActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        onBackPressed();
-        return true;
+    private void searchUsers(String query) {
+        userList.clear();
+        if (query.isEmpty()) {
+            userList.addAll(fullUserList);
+        } else {
+            for (User user : fullUserList) {
+                // Tìm kiếm theo tên hoặc email (không phân biệt hoa thường)
+                if (user.getName().toLowerCase().contains(query.toLowerCase()) ||
+                    user.getEmail().toLowerCase().contains(query.toLowerCase())) {
+                    userList.add(user);
+                }
+            }
+        }
+        adapter.notifyDataSetChanged();
     }
 }
