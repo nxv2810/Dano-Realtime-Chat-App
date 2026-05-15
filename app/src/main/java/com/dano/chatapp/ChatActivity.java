@@ -21,7 +21,9 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ChatActivity extends AppCompatActivity {
 
@@ -47,6 +49,11 @@ public class ChatActivity extends AppCompatActivity {
         receiverId = getIntent().getStringExtra("userId");
         receiverName = getIntent().getStringExtra("userName");
         senderId = FirebaseAuth.getInstance().getUid();
+
+        if (senderId == null || receiverId == null) {
+            finish();
+            return;
+        }
 
         String[] ids = {senderId, receiverId};
         Arrays.sort(ids);
@@ -92,21 +99,26 @@ public class ChatActivity extends AppCompatActivity {
         DatabaseReference chatRef = mDatabase.child("chats").child(chatId).child("messages");
         String messageId = chatRef.push().getKey();
 
-        ChatMessage chatMessage = new ChatMessage(senderId, messageText, System.currentTimeMillis(), "");
+        long timestamp = System.currentTimeMillis();
+        ChatMessage chatMessage = new ChatMessage(senderId, messageText, timestamp, "");
 
         if (messageId != null) {
             chatRef.child(messageId).setValue(chatMessage);
             
-            // Cập nhật danh sách chat cho cả 2 người
-            DatabaseReference chatListSenderRef = FirebaseDatabase.getInstance().getReference("chatlist")
-                    .child(senderId)
-                    .child(receiverId);
-            chatListSenderRef.child("id").setValue(receiverId);
+            // Cập nhật thông tin chat gần đây cho cả 2 người
+            Map<String, Object> chatListData = new HashMap<>();
+            chatListData.put("id", receiverId);
+            chatListData.put("lastMessage", messageText);
+            chatListData.put("timestamp", timestamp);
 
-            DatabaseReference chatListReceiverRef = FirebaseDatabase.getInstance().getReference("chatlist")
-                    .child(receiverId)
-                    .child(senderId);
-            chatListReceiverRef.child("id").setValue(senderId);
+            mDatabase.child("chatlist").child(senderId).child(receiverId).setValue(chatListData);
+
+            Map<String, Object> chatListDataReceiver = new HashMap<>();
+            chatListDataReceiver.put("id", senderId);
+            chatListDataReceiver.put("lastMessage", messageText);
+            chatListDataReceiver.put("timestamp", timestamp);
+
+            mDatabase.child("chatlist").child(receiverId).child(senderId).setValue(chatListDataReceiver);
         }
     }
 

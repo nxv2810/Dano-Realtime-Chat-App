@@ -2,15 +2,18 @@ package com.dano.chatapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.View;
+import android.widget.ImageView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.imageview.ShapeableImageView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -19,17 +22,22 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private RecyclerView recyclerMessages;
-    private UserAdapter adapter;
-    private List<User> chatUserList;
-    private List<String> chatIds;
+    private ShapeableImageView imgProfile;
+    private RecyclerView recyclerActiveUsers, recyclerRecentChats;
+    private RecentChatAdapter recentChatAdapter;
+    private HorizontalUserAdapter activeUserAdapter;
+    
+    private List<RecentChat> recentChatList;
+    private List<User> activeUserList;
 
     private FirebaseAuth mAuth;
-    private DatabaseReference chatListRef;
+    private DatabaseReference mDatabase;
+    private String currentUserId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,95 +51,148 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        String currentUserId = mAuth.getUid();
-        chatListRef = FirebaseDatabase.getInstance().getReference("chatlist").child(currentUserId);
+        currentUserId = mAuth.getUid();
+        mDatabase = FirebaseDatabase.getInstance().getReference();
 
-        recyclerMessages = findViewById(R.id.recycler_messages);
-        recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
+        initViews();
+        loadUserData();
+        loadActiveUsers();
+        loadRecentChats();
+    }
 
-        chatUserList = new ArrayList<>();
-        chatIds = new ArrayList<>();
-        
-        adapter = new UserAdapter(chatUserList, user -> {
-            Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-            intent.putExtra("userId", user.getUid());
-            intent.putExtra("userName", user.getName());
-            startActivity(intent);
+    private void initViews() {
+        imgProfile = findViewById(R.id.img_main_profile);
+        recyclerActiveUsers = findViewById(R.id.recycler_active_users);
+        recyclerRecentChats = findViewById(R.id.recycler_recent_chats);
+
+        // Active Users setup
+        activeUserList = new ArrayList<>();
+        activeUserAdapter = new HorizontalUserAdapter(activeUserList, user -> {
+            openChat(user.getUid(), user.getName());
         });
-        recyclerMessages.setAdapter(adapter);
+        recyclerActiveUsers.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        recyclerActiveUsers.setAdapter(activeUserAdapter);
 
-        FloatingActionButton fabNewChat = findViewById(R.id.fab_new_chat);
-        fabNewChat.setOnClickListener(v -> {
+        // Recent Chats setup
+        recentChatList = new ArrayList<>();
+        recentChatAdapter = new RecentChatAdapter(recentChatList, chat -> {
+            openChat(chat.getUserId(), chat.getName());
+        });
+        recyclerRecentChats.setLayoutManager(new LinearLayoutManager(this));
+        recyclerRecentChats.setAdapter(recentChatAdapter);
+
+        findViewById(R.id.fab_new_chat).setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, UsersActivity.class));
         });
 
-        loadChatList();
-    }
+        findViewById(R.id.nav_profile).setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+        });
+        
+        imgProfile.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+        });
 
-    private void loadChatList() {
-        chatListRef.addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                chatIds.clear();
-                for (DataSnapshot ds : snapshot.getChildren()) {
-                    String id = ds.child("id").getValue(String.class);
-                    if (id != null) {
-                        chatIds.add(id);
-                    }
-                }
-                fetchUserDetails();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-            }
+        findViewById(R.id.img_menu).setOnClickListener(v -> {
+            // Hiển thị menu nhanh nếu cần
+            Toast.makeText(this, "Menu", Toast.LENGTH_SHORT).show();
         });
     }
 
-    private void fetchUserDetails() {
-        DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
-        usersRef.addValueEventListener(new ValueEventListener() {
+    private void loadUserData() {
+        mDatabase.child("users").child(currentUserId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                chatUserList.clear();
+                User user = snapshot.getValue(User.class);
+                if (user != null && user.getProfileImage() != null) {
+                    Glide.with(MainActivity.this)
+                            .load(user.getProfileImage())
+                            .placeholder(R.drawable.ic_person)
+                            .into(imgProfile);
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void loadActiveUsers() {
+        mDatabase.child("users").addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                activeUserList.clear();
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     User user = ds.getValue(User.class);
-                    if (user != null) {
-                        for (String id : chatIds) {
-                            if (user.getUid().equals(id)) {
-                                chatUserList.add(user);
-                                break;
-                            }
-                        }
+                    if (user != null && !user.getUid().equals(currentUserId)) {
+                        activeUserList.add(user);
                     }
                 }
-                adapter.notifyDataSetChanged();
+                activeUserAdapter.notifyDataSetChanged();
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-            }
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
+    private void loadRecentChats() {
+        mDatabase.child("chatlist").child(currentUserId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                recentChatList.clear();
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    String userId = ds.child("id").getValue(String.class);
+                    String lastMsg = ds.child("lastMessage").getValue(String.class);
+                    Long timestamp = ds.child("timestamp").getValue(Long.class);
+                    
+                    if (userId != null) {
+                        RecentChat recent = new RecentChat();
+                        recent.setUserId(userId);
+                        recent.setLastMessage(lastMsg != null ? lastMsg : "");
+                        recent.setTimestamp(timestamp != null ? timestamp : 0);
+                        recentChatList.add(recent);
+                    }
+                }
+                fetchRecentChatDetails();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
     }
 
-    @Override
-    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.menu_logout) {
-            mAuth.signOut();
-            startActivity(new Intent(MainActivity.this, LoginActivity.class));
-            finish();
-            return true;
-        } else if (id == R.id.menu_profile) {
-            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
-            return true;
+    private void fetchRecentChatDetails() {
+        if (recentChatList.isEmpty()) {
+            recentChatAdapter.notifyDataSetChanged();
+            return;
         }
-        return super.onOptionsItemSelected(item);
+
+        mDatabase.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (RecentChat chat : recentChatList) {
+                    DataSnapshot userDs = snapshot.child(chat.getUserId());
+                    if (userDs.exists()) {
+                        chat.setName(userDs.child("name").getValue(String.class));
+                        chat.setProfileImage(userDs.child("profileImage").getValue(String.class));
+                    }
+                }
+                
+                // Sắp xếp theo thời gian mới nhất
+                Collections.sort(recentChatList, (o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
+                recentChatAdapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void openChat(String userId, String userName) {
+        Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+        intent.putExtra("userId", userId);
+        intent.putExtra("userName", userName);
+        startActivity(intent);
     }
 }
