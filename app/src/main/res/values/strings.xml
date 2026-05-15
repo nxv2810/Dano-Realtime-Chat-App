@@ -1,3 +1,23 @@
 <resources>
     <string name="app_name">DanoChatApp</string>
+    <string name="edit_profile">Chỉnh sửa hồ sơ</string>
+    <string name="display_name">Tên hiển thị</string>
+    <string name="status">Trạng thái</string>
+    <string name="enter_name">Nhập tên của bạn</string>
+    <string name="what_is_on_your_mind">Bạn đang nghĩ gì?</string>
+    <string name="cancel">HỦY</string>
+    <string name="save">LƯU</string>
+    <string name="no_status">Chưa có trạng thái</string>
+    <string name="name_cannot_be_empty">Tên không được để trống</string>
+    <string name="update_profile_success">Cập nhật thông tin thành công!</string>
+    <string name="update_avatar_success">Cập nhật ảnh đại diện thành công!</string>
+    <string name="upload_error">Lỗi tải ảnh: %1$s</string>
+    <string name="update_error">Lỗi cập nhật: %1$s</string>
+    <string name="messages">Tin nhắn</string>
+    <string name="contacts">Liên hệ</string>
+    <string name="privacy">Quyền riêng tư</string>
+    <string name="notifications">Thông báo</string>
+    <string name="help_center">Trung tâm trợ giúp</string>
+    <string name="logout">Đăng xuất</string>
+    <string name="app_version">Phiên bản 2.4.0 • Dano Vietnam</string>
 </resources>

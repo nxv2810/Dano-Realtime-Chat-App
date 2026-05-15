@@ -4,35 +4,46 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.ProgressBar;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
+import com.google.android.material.imageview.ShapeableImageView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.UserProfileChangeRequest;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class ProfileActivity extends AppCompatActivity {
 
-    private ImageView imageProfile;
-    private EditText editDisplayName;
-    private Button buttonChooseImage, buttonSaveProfile;
-    private ProgressBar progressBar;
+    private ShapeableImageView imageProfile, imgToolbarAvatar;
+    private TextView textProfileName, textProfileStatus;
+    private LinearLayout itemEditProfile;
+    private View btnLogout;
 
     private FirebaseAuth mAuth;
+    private DatabaseReference mDatabase;
     private FirebaseStorage mStorage;
     private Uri selectedImageUri;
+    private User currentUserModel;
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -40,6 +51,7 @@ public class ProfileActivity extends AppCompatActivity {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     selectedImageUri = result.getData().getData();
                     imageProfile.setImageURI(selectedImageUri);
+                    uploadImage();
                 }
             }
     );
@@ -51,74 +63,150 @@ public class ProfileActivity extends AppCompatActivity {
 
         mAuth = FirebaseAuth.getInstance();
         mStorage = FirebaseStorage.getInstance();
-        FirebaseUser user = mAuth.getCurrentUser();
+        FirebaseUser currentUser = mAuth.getCurrentUser();
 
-        imageProfile = findViewById(R.id.image_profile);
-        editDisplayName = findViewById(R.id.edit_display_name);
-        buttonChooseImage = findViewById(R.id.button_choose_image);
-        buttonSaveProfile = findViewById(R.id.button_save_profile);
-        progressBar = findViewById(R.id.progress_bar);
-
-        if (user != null) {
-            editDisplayName.setText(user.getDisplayName());
-            if (user.getPhotoUrl() != null) {
-                Glide.with(this).load(user.getPhotoUrl()).into(imageProfile);
-            }
+        if (currentUser == null) {
+            startActivity(new Intent(this, LoginActivity.class));
+            finish();
+            return;
         }
 
-        buttonChooseImage.setOnClickListener(v -> {
+        mDatabase = FirebaseDatabase.getInstance().getReference().child("users").child(currentUser.getUid());
+
+        initViews();
+        loadUserInfo();
+        setupListeners();
+    }
+
+    private void initViews() {
+        imageProfile = findViewById(R.id.image_profile);
+        imgToolbarAvatar = findViewById(R.id.img_toolbar_avatar);
+        textProfileName = findViewById(R.id.text_profile_name);
+        textProfileStatus = findViewById(R.id.text_profile_status);
+        itemEditProfile = findViewById(R.id.item_edit_profile);
+        btnLogout = findViewById(R.id.btn_logout);
+    }
+
+    private void loadUserInfo() {
+        mDatabase.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                if (snapshot.exists()) {
+                    currentUserModel = snapshot.getValue(User.class);
+                    if (currentUserModel != null) {
+                        textProfileName.setText(currentUserModel.getName());
+                        if (currentUserModel.getStatus() != null && !currentUserModel.getStatus().isEmpty()) {
+                            textProfileStatus.setText(currentUserModel.getStatus());
+                        } else {
+                            textProfileStatus.setText(getString(R.string.no_status));
+                        }
+                        
+                        if (currentUserModel.getProfileImage() != null && !currentUserModel.getProfileImage().isEmpty()) {
+                            Glide.with(ProfileActivity.this)
+                                    .load(currentUserModel.getProfileImage())
+                                    .placeholder(R.drawable.ic_person)
+                                    .into(imageProfile);
+                            Glide.with(ProfileActivity.this)
+                                    .load(currentUserModel.getProfileImage())
+                                    .placeholder(R.drawable.ic_person)
+                                    .into(imgToolbarAvatar);
+                        }
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+            }
+        });
+    }
+
+    private void setupListeners() {
+        // Bấm vào ảnh đại diện để đổi ảnh
+        imageProfile.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             pickImageLauncher.launch(intent);
         });
 
-        buttonSaveProfile.setOnClickListener(v -> saveProfile());
+        itemEditProfile.setOnClickListener(v -> showEditProfileDialog());
+
+        btnLogout.setOnClickListener(v -> {
+            mAuth.signOut();
+            Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+            finish();
+        });
     }
 
-    private void saveProfile() {
-        String displayName = editDisplayName.getText().toString().trim();
-        FirebaseUser user = mAuth.getCurrentUser();
+    private void showEditProfileDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_edit_profile, null);
+        builder.setView(view);
 
-        if (user == null) return;
+        EditText editName = view.findViewById(R.id.edit_name);
+        EditText editStatus = view.findViewById(R.id.edit_status);
+        TextView btnCancel = view.findViewById(R.id.btn_cancel);
+        TextView btnSave = view.findViewById(R.id.btn_save);
 
-        progressBar.setVisibility(View.VISIBLE);
-        buttonSaveProfile.setEnabled(false);
+        if (currentUserModel != null) {
+            editName.setText(currentUserModel.getName());
+            editStatus.setText(currentUserModel.getStatus());
+        }
 
+        AlertDialog dialog = builder.create();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
+        }
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        btnSave.setOnClickListener(v -> {
+            String name = editName.getText().toString().trim();
+            String status = editStatus.getText().toString().trim();
+
+            if (name.isEmpty()) {
+                editName.setError(getString(R.string.name_cannot_be_empty));
+                return;
+            }
+
+            updateProfileInfo(name, status);
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void updateProfileInfo(String name, String status) {
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("name", name);
+        updates.put("status", status);
+
+        mDatabase.updateChildren(updates).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Toast.makeText(ProfileActivity.this, getString(R.string.update_profile_success), Toast.LENGTH_SHORT).show();
+            } else {
+                String error = task.getException() != null ? task.getException().getMessage() : "Unknown error";
+                Toast.makeText(ProfileActivity.this, getString(R.string.update_error, error), Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void uploadImage() {
         if (selectedImageUri != null) {
-            // Upload ảnh lên Firebase Storage
+            FirebaseUser user = mAuth.getCurrentUser();
+            if (user == null) return;
+
             StorageReference storageRef = mStorage.getReference().child("avatars/" + user.getUid() + ".jpg");
+            
             storageRef.putFile(selectedImageUri)
                     .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        updateProfile(displayName, uri);
+                        mDatabase.child("profileImage").setValue(uri.toString());
+                        Toast.makeText(ProfileActivity.this, getString(R.string.update_avatar_success), Toast.LENGTH_SHORT).show();
                     }))
                     .addOnFailureListener(e -> {
-                        progressBar.setVisibility(View.GONE);
-                        buttonSaveProfile.setEnabled(true);
-                        Toast.makeText(ProfileActivity.this, "Upload failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ProfileActivity.this, getString(R.string.upload_error, e.getMessage()), Toast.LENGTH_SHORT).show();
                     });
-        } else {
-            updateProfile(displayName, user.getPhotoUrl());
         }
-    }
-
-    private void updateProfile(String displayName, Uri photoUri) {
-        FirebaseUser user = mAuth.getCurrentUser();
-        if (user == null) return;
-
-        UserProfileChangeRequest profileUpdates = new UserProfileChangeRequest.Builder()
-                .setDisplayName(displayName)
-                .setPhotoUri(photoUri)
-                .build();
-
-        user.updateProfile(profileUpdates)
-                .addOnCompleteListener(task -> {
-                    progressBar.setVisibility(View.GONE);
-                    buttonSaveProfile.setEnabled(true);
-                    if (task.isSuccessful()) {
-                        Toast.makeText(ProfileActivity.this, "Profile updated!", Toast.LENGTH_SHORT).show();
-                        finish();
-                    } else {
-                        Toast.makeText(ProfileActivity.this, "Update failed.", Toast.LENGTH_SHORT).show();
-                    }
-                });
     }
 }

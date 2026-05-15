@@ -5,16 +5,18 @@ public class User {
     private String name;
     private String email;
     private String profileImage;
+    private String status;
 
     // Constructor trống cho Firebase
     public User() {
     }
 
-    public User(String uid, String name, String email, String profileImage) {
+    public User(String uid, String name, String email, String profileImage, String status) {
         this.uid = uid;
         this.name = name;
         this.email = email;
         this.profileImage = profileImage;
+        this.status = status;
     }
 
     public String getUid() {
@@ -47,5 +49,13 @@ public class User {
 
     public void setProfileImage(String profileImage) {
         this.profileImage = profileImage;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
