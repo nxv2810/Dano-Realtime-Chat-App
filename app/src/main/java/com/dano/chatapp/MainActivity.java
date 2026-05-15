@@ -2,19 +2,16 @@ package com.dano.chatapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
-import android.widget.EditText;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -27,13 +24,12 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerMessages;
-    private EditText editMessage;
-    private Button buttonSend;
-    private MessageAdapter adapter;
-    private List<ChatMessage> messageList;
+    private UserAdapter adapter;
+    private List<User> chatUserList;
+    private List<String> chatIds;
 
-    private DatabaseReference databaseReference;
     private FirebaseAuth mAuth;
+    private DatabaseReference chatListRef;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,32 +43,43 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        databaseReference = FirebaseDatabase.getInstance().getReference("messages");
+        String currentUserId = mAuth.getUid();
+        chatListRef = FirebaseDatabase.getInstance().getReference("chatlist").child(currentUserId);
 
         recyclerMessages = findViewById(R.id.recycler_messages);
-        editMessage = findViewById(R.id.edit_message);
-        buttonSend = findViewById(R.id.button_send);
-
-        messageList = new ArrayList<>();
-        adapter = new MessageAdapter(messageList);
-        
         recyclerMessages.setLayoutManager(new LinearLayoutManager(this));
+
+        chatUserList = new ArrayList<>();
+        chatIds = new ArrayList<>();
+        
+        adapter = new UserAdapter(chatUserList, user -> {
+            Intent intent = new Intent(MainActivity.this, ChatActivity.class);
+            intent.putExtra("userId", user.getUid());
+            intent.putExtra("userName", user.getName());
+            startActivity(intent);
+        });
         recyclerMessages.setAdapter(adapter);
 
-        buttonSend.setOnClickListener(v -> sendMessage());
+        FloatingActionButton fabNewChat = findViewById(R.id.fab_new_chat);
+        fabNewChat.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, UsersActivity.class));
+        });
 
-        databaseReference.addValueEventListener(new ValueEventListener() {
+        loadChatList();
+    }
+
+    private void loadChatList() {
+        chatListRef.addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
-                messageList.clear();
-                for (DataSnapshot dataSnapshot : snapshot.getChildren()) {
-                    ChatMessage message = dataSnapshot.getValue(ChatMessage.class);
-                    messageList.add(message);
+                chatIds.clear();
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    String id = ds.child("id").getValue(String.class);
+                    if (id != null) {
+                        chatIds.add(id);
+                    }
                 }
-                adapter.notifyDataSetChanged();
-                if (!messageList.isEmpty()) {
-                    recyclerMessages.scrollToPosition(messageList.size() - 1);
-                }
+                fetchUserDetails();
             }
 
             @Override
@@ -81,27 +88,30 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void sendMessage() {
-        String messageText = editMessage.getText().toString().trim();
-        FirebaseUser user = mAuth.getCurrentUser();
-        
-        if (!TextUtils.isEmpty(messageText) && user != null) {
-            String messageId = databaseReference.push().getKey();
-            
-            String senderName = user.getDisplayName();
-            if (TextUtils.isEmpty(senderName)) {
-                senderName = user.getEmail();
+    private void fetchUserDetails() {
+        DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
+        usersRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                chatUserList.clear();
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    User user = ds.getValue(User.class);
+                    if (user != null) {
+                        for (String id : chatIds) {
+                            if (user.getUid().equals(id)) {
+                                chatUserList.add(user);
+                                break;
+                            }
+                        }
+                    }
+                }
+                adapter.notifyDataSetChanged();
             }
-            
-            String photoUrl = user.getPhotoUrl() != null ? user.getPhotoUrl().toString() : "";
-            
-            ChatMessage message = new ChatMessage(senderName, messageText, System.currentTimeMillis(), photoUrl);
-            
-            if (messageId != null) {
-                databaseReference.child(messageId).setValue(message);
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
             }
-            editMessage.setText("");
-        }
+        });
     }
 
     @Override
