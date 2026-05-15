@@ -2,4 +2,23 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Màu chủ đạo (Primary) -->
+    <color name="primary">#6200EE</color>
+    <color name="primary_variant">#3700B3</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <!-- Màu phụ (Secondary) -->
+    <color name="secondary">#03DAC6</color>
+    <color name="on_secondary">#000000</color>
+
+    <!-- Màu nền chat -->
+    <color name="chat_bg">#F5F5F5</color>
+    <color name="sent_bubble">#DCF8C6</color>
+    <color name="received_bubble">#FFFFFF</color>
+
+    <!-- Văn bản -->
+    <color name="text_primary">#212121</color>
+    <color name="text_grey">#757575</color>
+    <color name="error_red">#B00020</color>
 </resources>
