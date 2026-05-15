@@ -22,8 +22,8 @@
         android:id="@+id/text_time_received"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="2dp"
         android:layout_marginStart="4dp"
+        android:layout_marginTop="2dp"
         android:text="12:00"
         android:textColor="@color/neutral"
         android:textSize="11sp" />

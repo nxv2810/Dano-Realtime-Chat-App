@@ -44,12 +44,10 @@ public class ChatActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
-        // Lấy thông tin người nhận từ Intent
         receiverId = getIntent().getStringExtra("userId");
         receiverName = getIntent().getStringExtra("userName");
         senderId = FirebaseAuth.getInstance().getUid();
 
-        // Tạo chatId duy nhất cho 2 người (sắp xếp ID để luôn ra 1 kết quả)
         String[] ids = {senderId, receiverId};
         Arrays.sort(ids);
         chatId = ids[0] + "_" + ids[1];
@@ -98,6 +96,17 @@ public class ChatActivity extends AppCompatActivity {
 
         if (messageId != null) {
             chatRef.child(messageId).setValue(chatMessage);
+            
+            // Cập nhật danh sách chat cho cả 2 người
+            DatabaseReference chatListSenderRef = FirebaseDatabase.getInstance().getReference("chatlist")
+                    .child(senderId)
+                    .child(receiverId);
+            chatListSenderRef.child("id").setValue(receiverId);
+
+            DatabaseReference chatListReceiverRef = FirebaseDatabase.getInstance().getReference("chatlist")
+                    .child(receiverId)
+                    .child(senderId);
+            chatListReceiverRef.child("id").setValue(senderId);
         }
     }
 
