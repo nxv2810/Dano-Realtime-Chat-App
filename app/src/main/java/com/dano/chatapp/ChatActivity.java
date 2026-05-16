@@ -81,6 +81,7 @@ public class ChatActivity extends AppCompatActivity {
 
         messageList = new ArrayList<>();
         adapter = new ChatAdapter(messageList);
+
         recyclerChat.setLayoutManager(new LinearLayoutManager(this));
         recyclerChat.setAdapter(adapter);
     }
