@@ -3,6 +3,7 @@ package com.dano.chatapp;
 public class ChatMessage {
     private String sender;
     private String message;
+    private String imageUrl;
     private long timestamp;
     private String senderPhotoUrl;
 
@@ -13,6 +14,14 @@ public class ChatMessage {
     public ChatMessage(String sender, String message, long timestamp, String senderPhotoUrl) {
         this.sender = sender;
         this.message = message;
+        this.timestamp = timestamp;
+        this.senderPhotoUrl = senderPhotoUrl;
+    }
+
+    public ChatMessage(String sender, String message, String imageUrl, long timestamp, String senderPhotoUrl) {
+        this.sender = sender;
+        this.message = message;
+        this.imageUrl = imageUrl;
         this.timestamp = timestamp;
         this.senderPhotoUrl = senderPhotoUrl;
     }
@@ -31,6 +40,14 @@ public class ChatMessage {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 
     public long getTimestamp() {

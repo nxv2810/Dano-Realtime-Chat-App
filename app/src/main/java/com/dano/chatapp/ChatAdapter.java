@@ -3,11 +3,13 @@ package com.dano.chatapp;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.text.SimpleDateFormat;
@@ -55,11 +57,44 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date(message.getTimestamp()));
 
         if (holder instanceof SentViewHolder) {
-            ((SentViewHolder) holder).textMessage.setText(message.getMessage());
-            ((SentViewHolder) holder).textTime.setText(time);
+            SentViewHolder sentHolder = (SentViewHolder) holder;
+            sentHolder.textTime.setText(time);
+            
+            if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
+                sentHolder.imgSent.setVisibility(View.VISIBLE);
+                Glide.with(sentHolder.itemView.getContext())
+                        .load(message.getImageUrl())
+                        .into(sentHolder.imgSent);
+            } else {
+                sentHolder.imgSent.setVisibility(View.GONE);
+            }
+
+            if (message.getMessage() != null && !message.getMessage().isEmpty()) {
+                sentHolder.textMessage.setVisibility(View.VISIBLE);
+                sentHolder.textMessage.setText(message.getMessage());
+            } else {
+                sentHolder.textMessage.setVisibility(View.GONE);
+            }
+            
         } else {
-            ((ReceivedViewHolder) holder).textMessage.setText(message.getMessage());
-            ((ReceivedViewHolder) holder).textTime.setText(time);
+            ReceivedViewHolder receivedHolder = (ReceivedViewHolder) holder;
+            receivedHolder.textTime.setText(time);
+
+            if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
+                receivedHolder.imgReceived.setVisibility(View.VISIBLE);
+                Glide.with(receivedHolder.itemView.getContext())
+                        .load(message.getImageUrl())
+                        .into(receivedHolder.imgReceived);
+            } else {
+                receivedHolder.imgReceived.setVisibility(View.GONE);
+            }
+
+            if (message.getMessage() != null && !message.getMessage().isEmpty()) {
+                receivedHolder.textMessage.setVisibility(View.VISIBLE);
+                receivedHolder.textMessage.setText(message.getMessage());
+            } else {
+                receivedHolder.textMessage.setVisibility(View.GONE);
+            }
         }
     }
 
@@ -70,21 +105,25 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static class SentViewHolder extends RecyclerView.ViewHolder {
         TextView textMessage, textTime;
+        ImageView imgSent;
 
         SentViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message_sent);
             textTime = itemView.findViewById(R.id.text_time_sent);
+            imgSent = itemView.findViewById(R.id.img_sent);
         }
     }
 
     static class ReceivedViewHolder extends RecyclerView.ViewHolder {
         TextView textMessage, textTime;
+        ImageView imgReceived;
 
         ReceivedViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message_received);
             textTime = itemView.findViewById(R.id.text_time_received);
+            imgReceived = itemView.findViewById(R.id.img_received);
         }
     }
 }
