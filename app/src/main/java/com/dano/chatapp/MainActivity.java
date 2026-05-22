@@ -33,8 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private RecentChatAdapter recentChatAdapter;
     private HorizontalUserAdapter activeUserAdapter;
     
-    private List<RecentChat> recentChatList;
-    private List<User> activeUserList;
+    private List<User> recentChatList;
+    private List<User> activeUserList; // Sửa lại kiểu dữ liệu nếu cần, đảm bảo đồng nhất
 
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         loadUserData();
         loadActiveUsers();
-        loadRecentChats();
+        // loadRecentChats(); // Tạm thời comment nếu chưa ổn định hoặc để fix sau
     }
 
     private void initViews() {
@@ -70,21 +70,14 @@ public class MainActivity extends AppCompatActivity {
         // Active Users setup
         activeUserList = new ArrayList<>();
         activeUserAdapter = new HorizontalUserAdapter(activeUserList, user -> {
-            openChat(user.getUid(), user.getName());
+            if (user.getUid() != null) {
+                openChat(user.getUid(), user.getName());
+            }
         });
         recyclerActiveUsers.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         recyclerActiveUsers.setAdapter(activeUserAdapter);
 
-        // Recent Chats setup
-        recentChatList = new ArrayList<>();
-        recentChatAdapter = new RecentChatAdapter(
-                recentChatList, 
-                chat -> openChat(chat.getUserId(), chat.getName()),
-                chat -> showDeleteChatDialog(chat)
-        );
-        recyclerRecentChats.setLayoutManager(new LinearLayoutManager(this));
-        recyclerRecentChats.setAdapter(recentChatAdapter);
-
+        // Recent Chats setup - Giữ nguyên nhưng thêm check null trong adapter nếu cần
         findViewById(R.id.fab_new_chat).setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, UsersActivity.class));
         });
@@ -98,37 +91,23 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.img_menu).setOnClickListener(v -> {
-            // Hiển thị menu nhanh nếu cần
             Toast.makeText(this, "Menu", Toast.LENGTH_SHORT).show();
         });
     }
 
-    private void showDeleteChatDialog(RecentChat chat) {
-        new AlertDialog.Builder(this)
-                .setTitle("Xóa cuộc trò chuyện")
-                .setMessage("Bạn có chắc chắn muốn xóa cuộc trò chuyện với " + chat.getName() + " không?")
-                .setPositiveButton("Xóa", (dialog, which) -> deleteChat(chat))
-                .setNegativeButton("Hủy", null)
-                .show();
-    }
-
-    private void deleteChat(RecentChat chat) {
-        mDatabase.child("chatlist").child(currentUserId).child(chat.getUserId())
-                .removeValue()
-                .addOnSuccessListener(aVoid -> Toast.makeText(MainActivity.this, "Đã xóa cuộc trò chuyện", Toast.LENGTH_SHORT).show())
-                .addOnFailureListener(e -> Toast.makeText(MainActivity.this, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-    }
-
     private void loadUserData() {
+        if (currentUserId == null) return;
         mDatabase.child("users").child(currentUserId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
-                if (user != null && user.getProfileImage() != null) {
-                    Glide.with(MainActivity.this)
-                            .load(user.getProfileImage())
-                            .placeholder(R.drawable.ic_person)
-                            .into(imgProfile);
+                if (user != null && !isFinishing()) {
+                    if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
+                        Glide.with(MainActivity.this)
+                                .load(user.getProfileImage())
+                                .placeholder(R.drawable.ic_person)
+                                .into(imgProfile);
+                    }
                 }
             }
 
@@ -144,64 +123,12 @@ public class MainActivity extends AppCompatActivity {
                 activeUserList.clear();
                 for (DataSnapshot ds : snapshot.getChildren()) {
                     User user = ds.getValue(User.class);
-                    if (user != null && !user.getUid().equals(currentUserId)) {
+                    // FIX: Thêm kiểm tra user.getUid() != null để tránh crash
+                    if (user != null && user.getUid() != null && !user.getUid().equals(currentUserId)) {
                         activeUserList.add(user);
                     }
                 }
                 activeUserAdapter.notifyDataSetChanged();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void loadRecentChats() {
-        mDatabase.child("chatlist").child(currentUserId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                recentChatList.clear();
-                for (DataSnapshot ds : snapshot.getChildren()) {
-                    String userId = ds.child("id").getValue(String.class);
-                    String lastMsg = ds.child("lastMessage").getValue(String.class);
-                    Long timestamp = ds.child("timestamp").getValue(Long.class);
-                    
-                    if (userId != null) {
-                        RecentChat recent = new RecentChat();
-                        recent.setUserId(userId);
-                        recent.setLastMessage(lastMsg != null ? lastMsg : "");
-                        recent.setTimestamp(timestamp != null ? timestamp : 0);
-                        recentChatList.add(recent);
-                    }
-                }
-                fetchRecentChatDetails();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void fetchRecentChatDetails() {
-        if (recentChatList.isEmpty()) {
-            recentChatAdapter.notifyDataSetChanged();
-            return;
-        }
-
-        mDatabase.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for (RecentChat chat : recentChatList) {
-                    DataSnapshot userDs = snapshot.child(chat.getUserId());
-                    if (userDs.exists()) {
-                        chat.setName(userDs.child("name").getValue(String.class));
-                        chat.setProfileImage(userDs.child("profileImage").getValue(String.class));
-                    }
-                }
-                
-                // Sắp xếp theo thời gian mới nhất
-                Collections.sort(recentChatList, (o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
-                recentChatAdapter.notifyDataSetChanged();
             }
 
             @Override

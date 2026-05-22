@@ -10,6 +10,7 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.firebase.auth.FirebaseAuth;
 
 import java.text.SimpleDateFormat;
@@ -38,7 +39,8 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public int getItemViewType(int position) {
-        if (chatMessages.get(position).getSender().equals(currentUserId)) {
+        ChatMessage message = chatMessages.get(position);
+        if (message != null && message.getSender() != null && message.getSender().equals(currentUserId)) {
             return TYPE_SENT;
         } else {
             return TYPE_RECEIVED;
@@ -60,7 +62,14 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
         ChatMessage message = chatMessages.get(position);
-        String time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date(message.getTimestamp()));
+        if (message == null) return;
+
+        String time = "";
+        try {
+            time = new SimpleDateFormat("HH:mm", Locale.getDefault()).format(new Date(message.getTimestamp()));
+        } catch (Exception e) {
+            time = "00:00";
+        }
 
         if (holder instanceof SentViewHolder) {
             SentViewHolder sentHolder = (SentViewHolder) holder;
@@ -68,8 +77,12 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             
             if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
                 sentHolder.imgSent.setVisibility(View.VISIBLE);
+                // Tối ưu hóa Glide để tránh lag và glitch
                 Glide.with(sentHolder.itemView.getContext())
                         .load(message.getImageUrl())
+                        .override(600, 600)
+                        .centerInside()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .into(sentHolder.imgSent);
             } else {
                 sentHolder.imgSent.setVisibility(View.GONE);
@@ -89,14 +102,18 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 return true;
             });
             
-        } else {
+        } else if (holder instanceof ReceivedViewHolder) {
             ReceivedViewHolder receivedHolder = (ReceivedViewHolder) holder;
             receivedHolder.textTime.setText(time);
 
             if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
                 receivedHolder.imgReceived.setVisibility(View.VISIBLE);
+                // Tối ưu hóa Glide để tránh lag và glitch
                 Glide.with(receivedHolder.itemView.getContext())
                         .load(message.getImageUrl())
+                        .override(600, 600)
+                        .centerInside()
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
                         .into(receivedHolder.imgReceived);
             } else {
                 receivedHolder.imgReceived.setVisibility(View.GONE);
@@ -120,7 +137,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     @Override
     public int getItemCount() {
-        return chatMessages.size();
+        return chatMessages != null ? chatMessages.size() : 0;
     }
 
     static class SentViewHolder extends RecyclerView.ViewHolder {
