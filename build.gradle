@@ -3,3 +3,12 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.google.services) apply false
 }
+
+tasks.register("createLocalProperties") {
+    doLast {
+        def sdkDir = "C:/Users/DELL/AppData/Local/Android/Sdk"
+        def localProperties = new File(projectDir, "local.properties")
+        localProperties.text = "sdk.dir=${sdkDir.replace('\\', '/')}\n"
+        println "Created local.properties at ${localProperties.absolutePath}"
+    }
+}

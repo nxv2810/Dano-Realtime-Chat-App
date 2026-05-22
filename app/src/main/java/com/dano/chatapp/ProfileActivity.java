@@ -44,6 +44,7 @@ public class ProfileActivity extends AppCompatActivity {
     private FirebaseStorage mStorage;
     private Uri selectedImageUri;
     private User currentUserModel;
+    private static final String DATABASE_URL = "https://chatapp-20a5f5b5-default-rtdb.asia-southeast1.firebasedatabase.app";
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -71,7 +72,7 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
 
-        mDatabase = FirebaseDatabase.getInstance().getReference().child("users").child(currentUser.getUid());
+        mDatabase = FirebaseDatabase.getInstance(DATABASE_URL).getReference().child("users").child(currentUser.getUid());
 
         initViews();
         loadUserInfo();

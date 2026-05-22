@@ -26,6 +26,7 @@ public class RegisterActivity extends AppCompatActivity {
     
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
+    private static final String DATABASE_URL = "https://chatapp-20a5f5b5-default-rtdb.asia-southeast1.firebasedatabase.app";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +34,7 @@ public class RegisterActivity extends AppCompatActivity {
         setContentView(R.layout.activity_register);
 
         mAuth = FirebaseAuth.getInstance();
-        mDatabase = FirebaseDatabase.getInstance().getReference();
+        mDatabase = FirebaseDatabase.getInstance(DATABASE_URL).getReference();
 
         // Ánh xạ View
         editName = findViewById(R.id.edit_name);

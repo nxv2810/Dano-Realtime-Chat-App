@@ -31,6 +31,7 @@ public class UsersActivity extends AppCompatActivity {
     private List<User> fullUserList; // Danh sách gốc để lọc
     private DatabaseReference mDatabase;
     private String currentUserId;
+    private static final String DATABASE_URL = "https://chatapp-20a5f5b5-default-rtdb.asia-southeast1.firebasedatabase.app";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +40,7 @@ public class UsersActivity extends AppCompatActivity {
 
         // Firebase Setup
         currentUserId = FirebaseAuth.getInstance().getUid();
-        mDatabase = FirebaseDatabase.getInstance().getReference().child("users");
+        mDatabase = FirebaseDatabase.getInstance(DATABASE_URL).getReference().child("users");
 
         // View Binding
         recyclerUsers = findViewById(R.id.recycler_users);

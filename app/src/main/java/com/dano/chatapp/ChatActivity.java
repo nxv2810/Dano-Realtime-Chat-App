@@ -50,6 +50,7 @@ public class ChatActivity extends AppCompatActivity {
 
     private DatabaseReference mDatabase;
     private FirebaseStorage mStorage;
+    private static final String DATABASE_URL = "https://chatapp-20a5f5b5-default-rtdb.asia-southeast1.firebasedatabase.app";
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -79,7 +80,7 @@ public class ChatActivity extends AppCompatActivity {
         Arrays.sort(ids);
         chatId = ids[0] + "_" + ids[1];
 
-        mDatabase = FirebaseDatabase.getInstance().getReference();
+        mDatabase = FirebaseDatabase.getInstance(DATABASE_URL).getReference();
         mStorage = FirebaseStorage.getInstance();
 
         initViews();
