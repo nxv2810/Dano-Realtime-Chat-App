@@ -108,7 +108,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:italic="true"
+                    android:textStyle="italic"
                     android:text="@string/no_status"
                     android:textColor="@color/text_grey"
                     android:textSize="14sp" />
@@ -153,7 +153,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Tin nhắn"
+                            android:text="@string/messages"
                             android:textColor="@color/text_grey"
                             android:textSize="12sp" />
 
@@ -198,7 +198,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Liên hệ"
+                            android:text="@string/contacts"
                             android:textColor="@color/text_grey"
                             android:textSize="12sp" />
 
@@ -283,7 +283,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_weight="1"
-                        android:text="Quyền riêng tư"
+                        android:text="@string/privacy"
                         android:textColor="@color/black"
                         android:textSize="15sp" />
 
@@ -319,7 +319,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_weight="1"
-                        android:text="Thông báo"
+                        android:text="@string/notifications"
                         android:textColor="@color/black"
                         android:textSize="15sp" />
 
@@ -355,7 +355,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:layout_weight="1"
-                        android:text="Trung tâm trợ giúp"
+                        android:text="@string/help_center"
                         android:textColor="@color/black"
                         android:textSize="15sp" />
 
@@ -379,7 +379,7 @@
             android:backgroundTint="#FFF1F0"
             android:drawableStart="@drawable/ic_logout"
             android:paddingHorizontal="100dp"
-            android:text="Đăng xuất"
+            android:text="@string/logout"
             android:textAllCaps="false"
             android:textColor="#FF3B30"
             android:textSize="16sp"
@@ -390,7 +390,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:gravity="center"
-            android:text="Phiên bản 2.4.0 • Dano Vietnam"
+            android:text="@string/app_version"
             android:textColor="@color/neutral"
             android:textSize="12sp" />
 
