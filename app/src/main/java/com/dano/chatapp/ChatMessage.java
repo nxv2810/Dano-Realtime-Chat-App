@@ -1,6 +1,7 @@
 package com.dano.chatapp;
 
 public class ChatMessage {
+    private String messageId;
     private String sender;
     private String message;
     private String imageUrl;
@@ -24,6 +25,14 @@ public class ChatMessage {
         this.imageUrl = imageUrl;
         this.timestamp = timestamp;
         this.senderPhotoUrl = senderPhotoUrl;
+    }
+
+    public String getMessageId() {
+        return messageId;
+    }
+
+    public void setMessageId(String messageId) {
+        this.messageId = messageId;
     }
 
     public String getSender() {

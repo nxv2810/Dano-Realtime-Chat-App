@@ -5,7 +5,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.text.TextUtils;
-import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -13,6 +12,7 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -102,10 +102,34 @@ public class ChatActivity extends AppCompatActivity {
         btnAddImage = findViewById(R.id.btn_add_image);
 
         messageList = new ArrayList<>();
-        adapter = new ChatAdapter(messageList);
+        adapter = new ChatAdapter(messageList, (message, position) -> {
+            if (message.getSender().equals(senderId)) {
+                showDeleteDialog(message);
+            }
+        });
 
         recyclerChat.setLayoutManager(new LinearLayoutManager(this));
         recyclerChat.setAdapter(adapter);
+    }
+
+    private void showDeleteDialog(ChatMessage message) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Xóa tin nhắn");
+        builder.setMessage("Bạn có chắc chắn muốn xóa tin nhắn này không?");
+        builder.setPositiveButton("Xóa", (dialog, which) -> {
+            deleteMessage(message);
+        });
+        builder.setNegativeButton("Hủy", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void deleteMessage(ChatMessage message) {
+        if (message.getMessageId() != null) {
+            mDatabase.child("chats").child(chatId).child("messages")
+                    .child(message.getMessageId()).removeValue()
+                    .addOnSuccessListener(aVoid -> Toast.makeText(ChatActivity.this, "Đã xóa tin nhắn", Toast.LENGTH_SHORT).show())
+                    .addOnFailureListener(e -> Toast.makeText(ChatActivity.this, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+        }
     }
 
     private void setupChat() {
@@ -144,6 +168,7 @@ public class ChatActivity extends AppCompatActivity {
 
         long timestamp = System.currentTimeMillis();
         ChatMessage chatMessage = new ChatMessage(senderId, messageText, imageUrl, timestamp, "");
+        chatMessage.setMessageId(messageId);
 
         if (messageId != null) {
             chatRef.child(messageId).setValue(chatMessage);
@@ -175,7 +200,10 @@ public class ChatActivity extends AppCompatActivity {
                         messageList.clear();
                         for (DataSnapshot ds : snapshot.getChildren()) {
                             ChatMessage cm = ds.getValue(ChatMessage.class);
-                            messageList.add(cm);
+                            if (cm != null) {
+                                cm.setMessageId(ds.getKey());
+                                messageList.add(cm);
+                            }
                         }
                         adapter.notifyDataSetChanged();
                         if (messageList.size() > 0) {

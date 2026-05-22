@@ -24,10 +24,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private List<ChatMessage> chatMessages;
     private String currentUserId;
+    private OnMessageLongClickListener longClickListener;
 
-    public ChatAdapter(List<ChatMessage> chatMessages) {
+    public interface OnMessageLongClickListener {
+        void onMessageLongClick(ChatMessage message, int position);
+    }
+
+    public ChatAdapter(List<ChatMessage> chatMessages, OnMessageLongClickListener longClickListener) {
         this.chatMessages = chatMessages;
         this.currentUserId = FirebaseAuth.getInstance().getUid();
+        this.longClickListener = longClickListener;
     }
 
     @Override
@@ -75,6 +81,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             } else {
                 sentHolder.textMessage.setVisibility(View.GONE);
             }
+
+            sentHolder.itemView.setOnLongClickListener(v -> {
+                if (longClickListener != null) {
+                    longClickListener.onMessageLongClick(message, position);
+                }
+                return true;
+            });
             
         } else {
             ReceivedViewHolder receivedHolder = (ReceivedViewHolder) holder;
@@ -95,6 +108,13 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             } else {
                 receivedHolder.textMessage.setVisibility(View.GONE);
             }
+
+            receivedHolder.itemView.setOnLongClickListener(v -> {
+                if (longClickListener != null) {
+                    longClickListener.onMessageLongClick(message, position);
+                }
+                return true;
+            });
         }
     }
 
