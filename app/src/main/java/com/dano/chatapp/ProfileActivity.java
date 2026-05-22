@@ -45,6 +45,7 @@ public class ProfileActivity extends AppCompatActivity {
     private Uri selectedImageUri;
     private User currentUserModel;
     private static final String DATABASE_URL = "https://chatapp-20a5f5b5-default-rtdb.asia-southeast1.firebasedatabase.app";
+    private static final String STORAGE_BUCKET_URL = "gs://chatapp-20a5f5b5.firebasestorage.app";
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -63,7 +64,8 @@ public class ProfileActivity extends AppCompatActivity {
         setContentView(R.layout.activity_profile);
 
         mAuth = FirebaseAuth.getInstance();
-        mStorage = FirebaseStorage.getInstance();
+        // FIX: Cấu hình URL cho Storage để tránh lỗi "Object does not exist"
+        mStorage = FirebaseStorage.getInstance(STORAGE_BUCKET_URL);
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
         if (currentUser == null) {
@@ -123,7 +125,6 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void setupListeners() {
-        // Bấm vào ảnh đại diện để đổi ảnh
         imageProfile.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
             pickImageLauncher.launch(intent);
@@ -206,7 +207,7 @@ public class ProfileActivity extends AppCompatActivity {
                         Toast.makeText(ProfileActivity.this, getString(R.string.update_avatar_success), Toast.LENGTH_SHORT).show();
                     }))
                     .addOnFailureListener(e -> {
-                        Toast.makeText(ProfileActivity.this, getString(R.string.upload_error, e.getMessage()), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(ProfileActivity.this, "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                     });
         }
     }

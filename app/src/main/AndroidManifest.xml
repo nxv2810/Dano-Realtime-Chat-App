@@ -25,27 +25,13 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".RegisterActivity"
-            android:exported="false" />
+        <activity android:name=".RegisterActivity" android:exported="false" />
+        <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".MainActivity" android:exported="false" />
+        <activity android:name=".UsersActivity" android:exported="false" android:label="Danh sách người dùng" />
 
-        <activity
-            android:name=".ProfileActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".MainActivity"
-            android:exported="false" />
-
-        <activity
-            android:name=".UsersActivity"
-            android:exported="false"
-            android:label="Danh sách người dùng" />
-
-        <activity
-            android:name=".ChatActivity"
-            android:exported="false"
-            android:hardwareAccelerated="false" />
+        <!-- Đã xóa hardwareAccelerated=false để hiển thị ảnh mượt hơn -->
+        <activity android:name=".ChatActivity" android:exported="false" />
 
     </application>
 

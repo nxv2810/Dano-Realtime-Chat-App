@@ -33,8 +33,8 @@ public class MainActivity extends AppCompatActivity {
     private RecentChatAdapter recentChatAdapter;
     private HorizontalUserAdapter activeUserAdapter;
     
-    private List<User> recentChatList;
-    private List<User> activeUserList; // Sửa lại kiểu dữ liệu nếu cần, đảm bảo đồng nhất
+    private List<RecentChat> recentChatList;
+    private List<User> activeUserList;
 
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
@@ -59,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         loadUserData();
         loadActiveUsers();
-        // loadRecentChats(); // Tạm thời comment nếu chưa ổn định hoặc để fix sau
+        loadRecentChats();
     }
 
     private void initViews() {
@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerActiveUsers = findViewById(R.id.recycler_active_users);
         recyclerRecentChats = findViewById(R.id.recycler_recent_chats);
 
-        // Active Users setup
+        // Active Users setup (Friends)
         activeUserList = new ArrayList<>();
         activeUserAdapter = new HorizontalUserAdapter(activeUserList, user -> {
             if (user.getUid() != null) {
@@ -77,13 +77,36 @@ public class MainActivity extends AppCompatActivity {
         recyclerActiveUsers.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
         recyclerActiveUsers.setAdapter(activeUserAdapter);
 
-        // Recent Chats setup - Giữ nguyên nhưng thêm check null trong adapter nếu cần
-        findViewById(R.id.fab_new_chat).setOnClickListener(v -> {
+        // Recent Chats setup
+        recentChatList = new ArrayList<>();
+        recentChatAdapter = new RecentChatAdapter(recentChatList, 
+            chat -> {
+                if (chat != null && chat.getUserId() != null) {
+                    openChat(chat.getUserId(), chat.getName());
+                }
+            },
+            chat -> showDeleteChatDialog(chat));
+        recyclerRecentChats.setLayoutManager(new LinearLayoutManager(this));
+        recyclerRecentChats.setAdapter(recentChatAdapter);
+
+        // Bottom Navigation Events
+        findViewById(R.id.nav_chat).setOnClickListener(v -> {
+            // Đã ở màn hình trò chuyện
+            recyclerRecentChats.smoothScrollToPosition(0);
+        });
+
+        findViewById(R.id.nav_contacts).setOnClickListener(v -> {
+            // Mở màn hình Danh bạ (Tìm kiếm người dùng)
             startActivity(new Intent(MainActivity.this, UsersActivity.class));
         });
 
         findViewById(R.id.nav_profile).setOnClickListener(v -> {
             startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+        });
+
+        // Other Click Events
+        findViewById(R.id.fab_new_chat).setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, UsersActivity.class));
         });
         
         imgProfile.setOnClickListener(v -> {
@@ -117,18 +140,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadActiveUsers() {
-        mDatabase.child("users").addValueEventListener(new ValueEventListener() {
+        if (currentUserId == null) return;
+        mDatabase.child("friends").child(currentUserId).addValueEventListener(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 activeUserList.clear();
-                for (DataSnapshot ds : snapshot.getChildren()) {
-                    User user = ds.getValue(User.class);
-                    // FIX: Thêm kiểm tra user.getUid() != null để tránh crash
-                    if (user != null && user.getUid() != null && !user.getUid().equals(currentUserId)) {
-                        activeUserList.add(user);
+                if (snapshot.exists()) {
+                    for (DataSnapshot ds : snapshot.getChildren()) {
+                        String friendId = ds.getKey();
+                        if (friendId != null) {
+                            fetchFriendInfo(friendId);
+                        }
                     }
+                } else {
+                    activeUserAdapter.notifyDataSetChanged();
                 }
-                activeUserAdapter.notifyDataSetChanged();
             }
 
             @Override
@@ -136,7 +162,92 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private void fetchFriendInfo(String friendId) {
+        mDatabase.child("users").child(friendId).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                User user = snapshot.getValue(User.class);
+                if (user != null && user.getUid() != null) {
+                    boolean exists = false;
+                    for (User u : activeUserList) {
+                        if (u.getUid().equals(user.getUid())) {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists) {
+                        activeUserList.add(user);
+                        activeUserAdapter.notifyDataSetChanged();
+                    }
+                }
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void loadRecentChats() {
+        if (currentUserId == null) return;
+        mDatabase.child("chatlist").child(currentUserId).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                recentChatList.clear();
+                for (DataSnapshot ds : snapshot.getChildren()) {
+                    RecentChat chat = ds.getValue(RecentChat.class);
+                    if (chat != null) {
+                        if (chat.getUserId() == null) {
+                            chat.setUserId(ds.getKey());
+                        }
+                        recentChatList.add(chat);
+                    }
+                }
+                fetchRecentChatDetails();
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void fetchRecentChatDetails() {
+        if (recentChatList.isEmpty()) {
+            recentChatAdapter.notifyDataSetChanged();
+            return;
+        }
+        mDatabase.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                for (RecentChat chat : recentChatList) {
+                    if (chat.getUserId() != null) {
+                        DataSnapshot userDs = snapshot.child(chat.getUserId());
+                        if (userDs.exists()) {
+                            chat.setName(userDs.child("name").getValue(String.class));
+                            chat.setProfileImage(userDs.child("profileImage").getValue(String.class));
+                        }
+                    }
+                }
+                Collections.sort(recentChatList, (o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
+                recentChatAdapter.notifyDataSetChanged();
+            }
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+    }
+
+    private void showDeleteChatDialog(RecentChat chat) {
+        if (chat == null || chat.getUserId() == null) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Xóa cuộc trò chuyện")
+                .setMessage("Bạn có chắc chắn muốn xóa tin nhắn với " + (chat.getName() != null ? chat.getName() : "người này") + "?")
+                .setPositiveButton("Xóa", (dialog, which) -> {
+                    mDatabase.child("chatlist").child(currentUserId).child(chat.getUserId()).removeValue();
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
     private void openChat(String userId, String userName) {
+        if (userId == null) return;
         Intent intent = new Intent(MainActivity.this, ChatActivity.class);
         intent.putExtra("userId", userId);
         intent.putExtra("userName", userName);

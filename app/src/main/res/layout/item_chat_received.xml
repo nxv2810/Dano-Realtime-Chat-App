@@ -13,17 +13,18 @@
         android:layout_marginEnd="80dp"
         android:background="@drawable/chat_bubble_received"
         android:orientation="vertical"
-        android:padding="4dp">
+        android:padding="2dp">
 
+        <!-- Ảnh nhận được: Bo góc nhẹ, hiển thị tự nhiên -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/img_received"
-            android:layout_width="200dp"
+            android:layout_width="240dp"
             android:layout_height="wrap_content"
             android:adjustViewBounds="true"
-            android:maxHeight="300dp"
-            android:scaleType="centerCrop"
+            android:maxHeight="320dp"
+            android:scaleType="fitCenter"
             android:visibility="gone"
-            app:shapeAppearance="@style/ShapeAppearance.Material3.MediumComponent" />
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.Material3.MediumComponent" />
 
         <TextView
             android:id="@+id/text_message_received"
@@ -31,9 +32,8 @@
             android:layout_height="wrap_content"
             android:paddingHorizontal="12dp"
             android:paddingVertical="8dp"
-            android:text="Tin nhắn nhận được"
             android:textColor="@color/black"
-            android:textSize="15sp" />
+            android:textSize="16sp" />
     </LinearLayout>
 
     <TextView

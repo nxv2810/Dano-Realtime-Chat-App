@@ -1,5 +1,6 @@
 package com.dano.chatapp;
 
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -7,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -75,18 +77,16 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             SentViewHolder sentHolder = (SentViewHolder) holder;
             sentHolder.textTime.setText(time);
             
-            if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
-                sentHolder.imgSent.setVisibility(View.VISIBLE);
-                // Tối ưu hóa Glide để tránh lag và glitch
-                Glide.with(sentHolder.itemView.getContext())
-                        .load(message.getImageUrl())
-                        .override(600, 600)
-                        .centerInside()
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .into(sentHolder.imgSent);
+            // Trạng thái tin nhắn
+            if (message.isSeen()) {
+                sentHolder.imgStatus.setImageResource(R.drawable.ic_check); 
+                sentHolder.imgStatus.setColorFilter(ContextCompat.getColor(sentHolder.itemView.getContext(), R.color.primary));
             } else {
-                sentHolder.imgSent.setVisibility(View.GONE);
+                sentHolder.imgStatus.setImageResource(R.drawable.ic_check);
+                sentHolder.imgStatus.setColorFilter(ContextCompat.getColor(sentHolder.itemView.getContext(), R.color.neutral));
             }
+
+            displayImage(sentHolder.imgSent, message.getImageUrl());
 
             if (message.getMessage() != null && !message.getMessage().isEmpty()) {
                 sentHolder.textMessage.setVisibility(View.VISIBLE);
@@ -106,18 +106,7 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             ReceivedViewHolder receivedHolder = (ReceivedViewHolder) holder;
             receivedHolder.textTime.setText(time);
 
-            if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
-                receivedHolder.imgReceived.setVisibility(View.VISIBLE);
-                // Tối ưu hóa Glide để tránh lag và glitch
-                Glide.with(receivedHolder.itemView.getContext())
-                        .load(message.getImageUrl())
-                        .override(600, 600)
-                        .centerInside()
-                        .diskCacheStrategy(DiskCacheStrategy.ALL)
-                        .into(receivedHolder.imgReceived);
-            } else {
-                receivedHolder.imgReceived.setVisibility(View.GONE);
-            }
+            displayImage(receivedHolder.imgReceived, message.getImageUrl());
 
             if (message.getMessage() != null && !message.getMessage().isEmpty()) {
                 receivedHolder.textMessage.setVisibility(View.VISIBLE);
@@ -135,6 +124,35 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         }
     }
 
+    // Hàm xử lý hiển thị ảnh (Hỗ trợ cả URL và Base64)
+    private void displayImage(ImageView imageView, String imageSource) {
+        if (imageSource != null && !imageSource.isEmpty()) {
+            imageView.setVisibility(View.VISIBLE);
+            
+            if (imageSource.startsWith("http")) {
+                // Nếu là URL (Firebase Storage cũ)
+                Glide.with(imageView.getContext())
+                        .load(imageSource)
+                        .diskCacheStrategy(DiskCacheStrategy.ALL)
+                        .into(imageView);
+            } else {
+                // Nếu là chuỗi Base64 (Cách mới không tốn phí)
+                try {
+                    byte[] imageBytes = Base64.decode(imageSource, Base64.DEFAULT);
+                    Glide.with(imageView.getContext())
+                            .asBitmap()
+                            .load(imageBytes)
+                            .diskCacheStrategy(DiskCacheStrategy.NONE) // Không cần cache vì đã có trong DB
+                            .into(imageView);
+                } catch (Exception e) {
+                    imageView.setVisibility(View.GONE);
+                }
+            }
+        } else {
+            imageView.setVisibility(View.GONE);
+        }
+    }
+
     @Override
     public int getItemCount() {
         return chatMessages != null ? chatMessages.size() : 0;
@@ -142,13 +160,14 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static class SentViewHolder extends RecyclerView.ViewHolder {
         TextView textMessage, textTime;
-        ImageView imgSent;
+        ImageView imgSent, imgStatus;
 
         SentViewHolder(@NonNull View itemView) {
             super(itemView);
             textMessage = itemView.findViewById(R.id.text_message_sent);
             textTime = itemView.findViewById(R.id.text_time_sent);
             imgSent = itemView.findViewById(R.id.img_sent);
+            imgStatus = itemView.findViewById(R.id.img_status);
         }
     }
 

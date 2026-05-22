@@ -1,5 +1,7 @@
 package com.dano.chatapp;
 
+import com.google.firebase.database.PropertyName;
+
 public class RecentChat {
     private String userId;
     private String name;
@@ -11,19 +13,12 @@ public class RecentChat {
     public RecentChat() {
     }
 
-    public RecentChat(String userId, String name, String profileImage, String lastMessage, long timestamp, int unreadCount) {
-        this.userId = userId;
-        this.name = name;
-        this.profileImage = profileImage;
-        this.lastMessage = lastMessage;
-        this.timestamp = timestamp;
-        this.unreadCount = unreadCount;
-    }
-
+    @PropertyName("id")
     public String getUserId() {
         return userId;
     }
 
+    @PropertyName("id")
     public void setUserId(String userId) {
         this.userId = userId;
     }

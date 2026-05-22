@@ -3,6 +3,7 @@ package com.dano.chatapp;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -17,14 +18,20 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
 
     private List<User> userList;
     private OnUserClickListener listener;
+    private OnAddFriendClickListener addFriendListener;
 
     public interface OnUserClickListener {
         void onUserClick(User user);
     }
 
-    public UserAdapter(List<User> userList, OnUserClickListener listener) {
+    public interface OnAddFriendClickListener {
+        void onAddFriendClick(User user);
+    }
+
+    public UserAdapter(List<User> userList, OnUserClickListener listener, OnAddFriendClickListener addFriendListener) {
         this.userList = userList;
         this.listener = listener;
+        this.addFriendListener = addFriendListener;
     }
 
     @NonNull
@@ -54,6 +61,12 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
                 listener.onUserClick(user);
             }
         });
+
+        holder.btnAddFriend.setOnClickListener(v -> {
+            if (addFriendListener != null) {
+                addFriendListener.onAddFriendClick(user);
+            }
+        });
     }
 
     @Override
@@ -64,12 +77,14 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
     public static class UserViewHolder extends RecyclerView.ViewHolder {
         ImageView imgProfile;
         TextView textName, textEmail;
+        Button btnAddFriend;
 
         public UserViewHolder(@NonNull View itemView) {
             super(itemView);
             imgProfile = itemView.findViewById(R.id.img_user_profile);
             textName = itemView.findViewById(R.id.text_user_name);
             textEmail = itemView.findViewById(R.id.text_user_email);
+            btnAddFriend = itemView.findViewById(R.id.btn_add_friend);
         }
     }
 }
