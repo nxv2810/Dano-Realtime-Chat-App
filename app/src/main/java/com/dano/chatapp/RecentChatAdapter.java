@@ -20,14 +20,20 @@ public class RecentChatAdapter extends RecyclerView.Adapter<RecentChatAdapter.Vi
 
     private List<RecentChat> recentChatList;
     private OnItemClickListener listener;
+    private OnItemLongClickListener longClickListener;
 
     public interface OnItemClickListener {
         void onItemClick(RecentChat recentChat);
     }
 
-    public RecentChatAdapter(List<RecentChat> recentChatList, OnItemClickListener listener) {
+    public interface OnItemLongClickListener {
+        void onItemLongClick(RecentChat recentChat);
+    }
+
+    public RecentChatAdapter(List<RecentChat> recentChatList, OnItemClickListener listener, OnItemLongClickListener longClickListener) {
         this.recentChatList = recentChatList;
         this.listener = listener;
+        this.longClickListener = longClickListener;
     }
 
     @NonNull
@@ -62,6 +68,13 @@ public class RecentChatAdapter extends RecyclerView.Adapter<RecentChatAdapter.Vi
                 .into(holder.imgProfile);
 
         holder.itemView.setOnClickListener(v -> listener.onItemClick(chat));
+        
+        holder.itemView.setOnLongClickListener(v -> {
+            if (longClickListener != null) {
+                longClickListener.onItemLongClick(chat);
+            }
+            return true;
+        });
     }
 
     @Override

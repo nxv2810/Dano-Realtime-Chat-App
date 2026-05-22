@@ -7,6 +7,7 @@ import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -75,9 +76,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Recent Chats setup
         recentChatList = new ArrayList<>();
-        recentChatAdapter = new RecentChatAdapter(recentChatList, chat -> {
-            openChat(chat.getUserId(), chat.getName());
-        });
+        recentChatAdapter = new RecentChatAdapter(
+                recentChatList, 
+                chat -> openChat(chat.getUserId(), chat.getName()),
+                chat -> showDeleteChatDialog(chat)
+        );
         recyclerRecentChats.setLayoutManager(new LinearLayoutManager(this));
         recyclerRecentChats.setAdapter(recentChatAdapter);
 
@@ -97,6 +100,22 @@ public class MainActivity extends AppCompatActivity {
             // Hiển thị menu nhanh nếu cần
             Toast.makeText(this, "Menu", Toast.LENGTH_SHORT).show();
         });
+    }
+
+    private void showDeleteChatDialog(RecentChat chat) {
+        new AlertDialog.Builder(this)
+                .setTitle("Xóa cuộc trò chuyện")
+                .setMessage("Bạn có chắc chắn muốn xóa cuộc trò chuyện với " + chat.getName() + " không?")
+                .setPositiveButton("Xóa", (dialog, which) -> deleteChat(chat))
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    private void deleteChat(RecentChat chat) {
+        mDatabase.child("chatlist").child(currentUserId).child(chat.getUserId())
+                .removeValue()
+                .addOnSuccessListener(aVoid -> Toast.makeText(MainActivity.this, "Đã xóa cuộc trò chuyện", Toast.LENGTH_SHORT).show())
+                .addOnFailureListener(e -> Toast.makeText(MainActivity.this, "Lỗi khi xóa: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 
     private void loadUserData() {
