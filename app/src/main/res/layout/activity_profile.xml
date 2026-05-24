@@ -158,9 +158,10 @@
                             android:textSize="12sp" />
 
                         <TextView
+                            android:id="@+id/text_message_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="1.2k"
+                            android:text="0"
                             android:textColor="@color/primary"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -203,9 +204,10 @@
                             android:textSize="12sp" />
 
                         <TextView
+                            android:id="@+id/text_contact_count"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="348"
+                            android:text="0"
                             android:textColor="@color/secondary"
                             android:textSize="16sp"
                             android:textStyle="bold" />

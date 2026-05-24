@@ -36,11 +36,13 @@ public class ProfileActivity extends AppCompatActivity {
 
     private ShapeableImageView imageProfile, imgToolbarAvatar;
     private TextView textProfileName, textProfileStatus;
+    private TextView textMessageCount, textContactCount;
     private LinearLayout itemEditProfile;
     private View btnLogout;
 
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
+    private DatabaseReference mRootRef;
     private FirebaseStorage mStorage;
     private Uri selectedImageUri;
     private User currentUserModel;
@@ -64,7 +66,6 @@ public class ProfileActivity extends AppCompatActivity {
         setContentView(R.layout.activity_profile);
 
         mAuth = FirebaseAuth.getInstance();
-        // FIX: Cấu hình URL cho Storage để tránh lỗi "Object does not exist"
         mStorage = FirebaseStorage.getInstance(STORAGE_BUCKET_URL);
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
@@ -74,10 +75,12 @@ public class ProfileActivity extends AppCompatActivity {
             return;
         }
 
-        mDatabase = FirebaseDatabase.getInstance(DATABASE_URL).getReference().child("users").child(currentUser.getUid());
+        mRootRef = FirebaseDatabase.getInstance(DATABASE_URL).getReference();
+        mDatabase = mRootRef.child("users").child(currentUser.getUid());
 
         initViews();
         loadUserInfo();
+        loadStats(currentUser.getUid());
         setupListeners();
     }
 
@@ -86,6 +89,8 @@ public class ProfileActivity extends AppCompatActivity {
         imgToolbarAvatar = findViewById(R.id.img_toolbar_avatar);
         textProfileName = findViewById(R.id.text_profile_name);
         textProfileStatus = findViewById(R.id.text_profile_status);
+        textMessageCount = findViewById(R.id.text_message_count);
+        textContactCount = findViewById(R.id.text_contact_count);
         itemEditProfile = findViewById(R.id.item_edit_profile);
         btnLogout = findViewById(R.id.btn_logout);
     }
@@ -121,6 +126,32 @@ public class ProfileActivity extends AppCompatActivity {
             @Override
             public void onCancelled(@NonNull DatabaseError error) {
             }
+        });
+    }
+
+    private void loadStats(String uid) {
+        // Load contact count (friends)
+        mRootRef.child("friends").child(uid).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                long count = snapshot.getChildrenCount();
+                textContactCount.setText(String.valueOf(count));
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
+        });
+
+        // Load conversation count (chatlist)
+        mRootRef.child("chatlist").child(uid).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                long count = snapshot.getChildrenCount();
+                textMessageCount.setText(String.valueOf(count));
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {}
         });
     }
 
