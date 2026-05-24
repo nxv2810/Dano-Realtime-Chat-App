@@ -2,10 +2,11 @@ package com.dano.chatapp;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -16,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -84,10 +86,6 @@ public class ChatFragment extends Fragment {
             chat -> showDeleteChatDialog(chat));
         recyclerRecentChats.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerRecentChats.setAdapter(recentChatAdapter);
-
-        view.findViewById(R.id.img_menu).setOnClickListener(v -> {
-            Toast.makeText(getContext(), "Menu", Toast.LENGTH_SHORT).show();
-        });
     }
 
     private void loadUserData() {
@@ -97,18 +95,40 @@ public class ChatFragment extends Fragment {
             public void onDataChange(@NonNull DataSnapshot snapshot) {
                 User user = snapshot.getValue(User.class);
                 if (user != null && isAdded()) {
-                    if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
-                        Glide.with(ChatFragment.this)
-                                .load(user.getProfileImage())
-                                .placeholder(R.drawable.ic_person)
-                                .into(imgProfile);
-                    }
+                    displayAvatar(imgProfile, user.getProfileImage());
                 }
             }
 
             @Override
             public void onCancelled(@NonNull DatabaseError error) {}
         });
+    }
+
+    private void displayAvatar(ImageView imageView, String imageSource) {
+        if (imageSource != null && !imageSource.isEmpty()) {
+            if (imageSource.startsWith("http")) {
+                // URL cũ
+                Glide.with(this)
+                        .load(imageSource)
+                        .placeholder(R.drawable.ic_person)
+                        .into(imageView);
+            } else {
+                // Base64 mới
+                try {
+                    byte[] imageBytes = Base64.decode(imageSource, Base64.DEFAULT);
+                    Glide.with(this)
+                            .asBitmap()
+                            .load(imageBytes)
+                            .placeholder(R.drawable.ic_person)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(imageView);
+                } catch (Exception e) {
+                    imageView.setImageResource(R.drawable.ic_person);
+                }
+            }
+        } else {
+            imageView.setImageResource(R.drawable.ic_person);
+        }
     }
 
     private void loadActiveUsers() {

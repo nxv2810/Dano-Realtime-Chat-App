@@ -1,9 +1,13 @@
 package com.dano.chatapp;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Base64;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,6 +24,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.google.android.material.imageview.ShapeableImageView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
@@ -28,9 +33,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.google.firebase.storage.FirebaseStorage;
-import com.google.firebase.storage.StorageReference;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,7 +44,7 @@ import static android.app.Activity.RESULT_OK;
 public class ProfileFragment extends Fragment {
 
     private ShapeableImageView imageProfile;
-    private TextView textProfileName, textProfileStatus;
+    private TextView textProfileName, textProfileStatus, textProfilePhone;
     private TextView textMessageCount, textContactCount;
     private LinearLayout itemEditProfile;
     private View btnLogout;
@@ -47,19 +52,17 @@ public class ProfileFragment extends Fragment {
     private FirebaseAuth mAuth;
     private DatabaseReference mDatabase;
     private DatabaseReference mRootRef;
-    private FirebaseStorage mStorage;
-    private Uri selectedImageUri;
     private User currentUserModel;
     private static final String DATABASE_URL = "https://chatapp-20a5f5b5-default-rtdb.asia-southeast1.firebasedatabase.app";
-    private static final String STORAGE_BUCKET_URL = "gs://chatapp-20a5f5b5.firebasestorage.app";
 
     private final ActivityResultLauncher<Intent> pickImageLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    selectedImageUri = result.getData().getData();
-                    imageProfile.setImageURI(selectedImageUri);
-                    uploadImage();
+                    Uri selectedImageUri = result.getData().getData();
+                    if (selectedImageUri != null) {
+                        handleImageSelection(selectedImageUri);
+                    }
                 }
             }
     );
@@ -70,7 +73,6 @@ public class ProfileFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_profile, container, false);
 
         mAuth = FirebaseAuth.getInstance();
-        mStorage = FirebaseStorage.getInstance(STORAGE_BUCKET_URL);
         FirebaseUser currentUser = mAuth.getCurrentUser();
 
         if (currentUser == null) {
@@ -93,6 +95,7 @@ public class ProfileFragment extends Fragment {
     private void initViews(View view) {
         imageProfile = view.findViewById(R.id.image_profile);
         textProfileName = view.findViewById(R.id.text_profile_name);
+        textProfilePhone = view.findViewById(R.id.text_profile_phone);
         textProfileStatus = view.findViewById(R.id.text_profile_status);
         textMessageCount = view.findViewById(R.id.text_message_count);
         textContactCount = view.findViewById(R.id.text_contact_count);
@@ -108,18 +111,15 @@ public class ProfileFragment extends Fragment {
                     currentUserModel = snapshot.getValue(User.class);
                     if (currentUserModel != null) {
                         textProfileName.setText(currentUserModel.getName());
+                        textProfilePhone.setText(currentUserModel.getPhone() != null ? currentUserModel.getPhone() : "Chưa cập nhật");
+                        
                         if (currentUserModel.getStatus() != null && !currentUserModel.getStatus().isEmpty()) {
                             textProfileStatus.setText(currentUserModel.getStatus());
                         } else {
                             textProfileStatus.setText(getString(R.string.no_status));
                         }
                         
-                        if (currentUserModel.getProfileImage() != null && !currentUserModel.getProfileImage().isEmpty()) {
-                            Glide.with(ProfileFragment.this)
-                                    .load(currentUserModel.getProfileImage())
-                                    .placeholder(R.drawable.ic_person)
-                                    .into(imageProfile);
-                        }
+                        displayAvatar(currentUserModel.getProfileImage());
                     }
                 }
             }
@@ -128,6 +128,74 @@ public class ProfileFragment extends Fragment {
             public void onCancelled(@NonNull DatabaseError error) {
             }
         });
+    }
+
+    private void displayAvatar(String imageSource) {
+        if (imageSource != null && !imageSource.isEmpty()) {
+            if (imageSource.startsWith("http")) {
+                // URL cũ
+                Glide.with(this)
+                        .load(imageSource)
+                        .placeholder(R.drawable.ic_person)
+                        .into(imageProfile);
+            } else {
+                // Base64 mới
+                try {
+                    byte[] imageBytes = Base64.decode(imageSource, Base64.DEFAULT);
+                    Glide.with(this)
+                            .asBitmap()
+                            .load(imageBytes)
+                            .placeholder(R.drawable.ic_person)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(imageProfile);
+                } catch (Exception e) {
+                    imageProfile.setImageResource(R.drawable.ic_person);
+                }
+            }
+        } else {
+            imageProfile.setImageResource(R.drawable.ic_person);
+        }
+    }
+
+    private void handleImageSelection(Uri imageUri) {
+        Toast.makeText(getContext(), "Đang cập nhật ảnh đại diện...", Toast.LENGTH_SHORT).show();
+
+        new Thread(() -> {
+            try {
+                InputStream inputStream = requireContext().getContentResolver().openInputStream(imageUri);
+                Bitmap bitmap = BitmapFactory.decodeStream(inputStream);
+                if (inputStream != null) inputStream.close();
+
+                if (bitmap == null) return;
+
+                // Nén ảnh xuống mức 200px cho avatar (Siêu nhẹ)
+                int width = bitmap.getWidth();
+                int height = bitmap.getHeight();
+                float ratio = (float) width / 200;
+                if (width > 200) {
+                    width = 200;
+                    height = (int) (height / ratio);
+                }
+                Bitmap scaledBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
+                
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                scaledBitmap.compress(Bitmap.CompressFormat.JPEG, 70, baos); 
+                byte[] bytes = baos.toByteArray();
+                
+                String base64Image = Base64.encodeToString(bytes, Base64.NO_WRAP);
+                
+                if (isAdded()) {
+                    requireActivity().runOnUiThread(() -> {
+                        mDatabase.child("profileImage").setValue(base64Image)
+                            .addOnSuccessListener(aVoid -> Toast.makeText(getContext(), "Đã cập nhật ảnh đại diện!", Toast.LENGTH_SHORT).show())
+                            .addOnFailureListener(e -> Toast.makeText(getContext(), "Lỗi: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                    });
+                }
+                
+            } catch (Exception e) {
+                Log.e("DANO_PROFILE", "Lỗi xử lý avatar: " + e.getMessage());
+            }
+        }).start();
     }
 
     private void loadStats(String uid) {
@@ -181,12 +249,14 @@ public class ProfileFragment extends Fragment {
         builder.setView(view);
 
         EditText editName = view.findViewById(R.id.edit_name);
+        EditText editPhone = view.findViewById(R.id.edit_phone);
         EditText editStatus = view.findViewById(R.id.edit_status);
         TextView btnCancel = view.findViewById(R.id.btn_cancel);
-        TextView btnSave = view.findViewById(R.id.btn_save);
+        View btnSave = view.findViewById(R.id.btn_save);
 
         if (currentUserModel != null) {
             editName.setText(currentUserModel.getName());
+            editPhone.setText(currentUserModel.getPhone());
             editStatus.setText(currentUserModel.getStatus());
         }
 
@@ -199,6 +269,7 @@ public class ProfileFragment extends Fragment {
 
         btnSave.setOnClickListener(v -> {
             String name = editName.getText().toString().trim();
+            String phone = editPhone.getText().toString().trim();
             String status = editStatus.getText().toString().trim();
 
             if (name.isEmpty()) {
@@ -206,16 +277,17 @@ public class ProfileFragment extends Fragment {
                 return;
             }
 
-            updateProfileInfo(name, status);
+            updateProfileInfo(name, phone, status);
             dialog.dismiss();
         });
 
         dialog.show();
     }
 
-    private void updateProfileInfo(String name, String status) {
+    private void updateProfileInfo(String name, String phone, String status) {
         Map<String, Object> updates = new HashMap<>();
         updates.put("name", name);
+        updates.put("phone", phone);
         updates.put("status", status);
 
         mDatabase.updateChildren(updates).addOnCompleteListener(task -> {
@@ -223,27 +295,5 @@ public class ProfileFragment extends Fragment {
                 Toast.makeText(getContext(), getString(R.string.update_profile_success), Toast.LENGTH_SHORT).show();
             }
         });
-    }
-
-    private void uploadImage() {
-        if (selectedImageUri != null) {
-            FirebaseUser user = mAuth.getCurrentUser();
-            if (user == null) return;
-
-            StorageReference storageRef = mStorage.getReference().child("avatars/" + user.getUid() + ".jpg");
-            
-            storageRef.putFile(selectedImageUri)
-                    .addOnSuccessListener(taskSnapshot -> storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                        if (isAdded()) {
-                            mDatabase.child("profileImage").setValue(uri.toString());
-                            Toast.makeText(getContext(), getString(R.string.update_avatar_success), Toast.LENGTH_SHORT).show();
-                        }
-                    }))
-                    .addOnFailureListener(e -> {
-                        if (isAdded()) {
-                            Toast.makeText(getContext(), "Lỗi tải ảnh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                    });
-        }
     }
 }

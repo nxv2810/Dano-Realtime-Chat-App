@@ -39,14 +39,6 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
             </LinearLayout>
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:src="@android:drawable/ic_menu_help"
-                app:tint="@color/neutral" />
         </RelativeLayout>
 
         <TextView
@@ -105,17 +97,16 @@
                     android:layout_height="match_parent"
                     android:layout_marginStart="8dp"
                     android:background="@null"
-                    android:hint="Nguyễn Văn A"
                     android:inputType="textPersonName"
                     android:textSize="14sp" />
             </LinearLayout>
 
-            <!-- Email/Phone -->
+            <!-- Email -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Email hoặc Số điện thoại"
+                android:text="Email"
                 android:textColor="@color/text_grey"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -137,29 +128,48 @@
 
                 <EditText
                     android:id="@+id/edit_email"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:layout_marginStart="8dp"
-                    android:layout_weight="1"
                     android:background="@null"
-                    android:hint="vannam.nguyen@gmail.com"
                     android:inputType="textEmailAddress"
                     android:textSize="14sp" />
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:src="@android:drawable/checkbox_on_background"
-                    app:tint="@color/primary" />
             </LinearLayout>
 
+            <!-- Phone Number -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="Email hợp lệ"
-                android:textColor="@color/primary"
-                android:textSize="12sp" />
+                android:layout_marginTop="16dp"
+                android:text="Số điện thoại"
+                android:textColor="@color/text_grey"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/edit_text_bg"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="12dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/ic_menu_call"
+                    app:tint="@color/neutral" />
+
+                <EditText
+                    android:id="@+id/edit_phone"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginStart="8dp"
+                    android:background="@null"
+                    android:inputType="phone"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <!-- Password -->
             <TextView
@@ -192,24 +202,28 @@
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:background="@null"
-                    android:hint="......"
                     android:inputType="textPassword"
                     android:textSize="14sp" />
 
                 <ImageView
+                    android:id="@+id/image_show_password"
                     android:layout_width="20dp"
                     android:layout_height="20dp"
                     android:src="@android:drawable/ic_menu_view"
+                    android:clickable="true"
+                    android:focusable="true"
                     app:tint="@color/neutral" />
             </LinearLayout>
 
             <TextView
+                android:id="@+id/text_password_error"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="⚠ Mật khẩu quá ngắn. Cần ít nhất 8 ký tự."
+                android:text="⚠ Mật khẩu cần ít nhất 8 ký tự, gồm chữ, số và ký tự đặc biệt."
                 android:textColor="@color/error_red"
-                android:textSize="12sp" />
+                android:textSize="12sp"
+                android:visibility="gone" />
 
             <!-- Confirm Password -->
             <TextView
@@ -238,13 +252,22 @@
 
                 <EditText
                     android:id="@+id/edit_confirm_password"
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_marginStart="8dp"
+                    android:layout_weight="1"
                     android:background="@null"
-                    android:hint="Nhập lại mật khẩu"
                     android:inputType="textPassword"
                     android:textSize="14sp" />
+
+                <ImageView
+                    android:id="@+id/image_show_confirm_password"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@android:drawable/ic_menu_view"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:tint="@color/neutral" />
             </LinearLayout>
 
             <!-- Terms -->

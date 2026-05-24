@@ -2,12 +2,17 @@
     <string name="app_name">DanoChatApp</string>
     <string name="app_name_short">Dano</string>
     <string name="edit_profile">Chỉnh sửa hồ sơ</string>
+    <string name="edit_profile_desc">Cập nhật thông tin cá nhân của bạn để mọi người dễ dàng nhận ra.</string>
+    <string name="full_name">Họ và Tên</string>
     <string name="display_name">Tên hiển thị</string>
+    <string name="phone_number">Số điện thoại</string>
+    <string name="phone_hint">09xx xxx xxx</string>
     <string name="status">Trạng thái</string>
     <string name="enter_name">Nhập tên của bạn</string>
     <string name="what_is_on_your_mind">Bạn đang nghĩ gì?</string>
-    <string name="cancel">HỦY</string>
-    <string name="save">LƯU</string>
+    <string name="cancel">Hủy</string>
+    <string name="save">Lưu</string>
+    <string name="save_changes">Lưu thay đổi</string>
     <string name="no_status">Chưa có trạng thái</string>
     <string name="name_cannot_be_empty">Tên không được để trống</string>
     <string name="update_profile_success">Cập nhật thông tin thành công!</string>
@@ -25,4 +30,12 @@
     <string name="nav_chat">Trò chuyện</string>
     <string name="nav_contacts">Danh bạ</string>
     <string name="nav_profile">Cá nhân</string>
+
+    <!-- Friend System -->
+    <string name="friend_request_sent">Đã gửi lời mời kết bạn</string>
+    <string name="now_friends">Bây giờ bạn và %1$s là bạn bè</string>
+    <string name="add_friend">Kết bạn</string>
+    <string name="request_sent">Đã gửi</string>
+    <string name="accept_friend">Chấp nhận</string>
+    <string name="friends_label">Bạn bè</string>
 </resources>

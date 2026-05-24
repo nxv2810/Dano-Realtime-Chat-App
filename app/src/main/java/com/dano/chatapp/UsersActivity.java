@@ -125,10 +125,14 @@ public class UsersActivity extends AppCompatActivity {
         if (query.isEmpty()) {
             userList.addAll(fullUserList);
         } else {
+            String lowerCaseQuery = query.toLowerCase();
             for (User user : fullUserList) {
-                // Tìm kiếm theo tên hoặc email (không phân biệt hoa thường)
-                if (user.getName().toLowerCase().contains(query.toLowerCase()) ||
-                    user.getEmail().toLowerCase().contains(query.toLowerCase())) {
+                // Tìm kiếm theo tên, email hoặc số điện thoại
+                boolean matchesName = user.getName() != null && user.getName().toLowerCase().contains(lowerCaseQuery);
+                boolean matchesEmail = user.getEmail() != null && user.getEmail().toLowerCase().contains(lowerCaseQuery);
+                boolean matchesPhone = user.getPhone() != null && user.getPhone().contains(query);
+
+                if (matchesName || matchesEmail || matchesPhone) {
                     userList.add(user);
                 }
             }

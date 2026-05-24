@@ -1,5 +1,6 @@
 package com.dano.chatapp;
 
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,14 +12,18 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder> {
 
     private List<User> userList;
     private OnUserClickListener listener;
     private OnAddFriendClickListener addFriendListener;
+    private Map<String, String> userStates = new HashMap<>(); // uid -> state (none, sent, received, friends)
 
     public interface OnUserClickListener {
         void onUserClick(User user);
@@ -34,6 +39,11 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
         this.addFriendListener = addFriendListener;
     }
 
+    public void setUserStates(Map<String, String> states) {
+        this.userStates = states;
+        notifyDataSetChanged();
+    }
+
     @NonNull
     @Override
     public UserViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -47,26 +57,71 @@ public class UserAdapter extends RecyclerView.Adapter<UserAdapter.UserViewHolder
         holder.textName.setText(user.getName());
         holder.textEmail.setText(user.getEmail());
 
-        if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
-            Glide.with(holder.itemView.getContext())
-                    .load(user.getProfileImage())
-                    .placeholder(R.drawable.ic_person)
-                    .into(holder.imgProfile);
-        } else {
-            holder.imgProfile.setImageResource(R.drawable.ic_person);
-        }
+        displayAvatar(holder.imgProfile, user.getProfileImage());
 
-        holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onUserClick(user);
-            }
-        });
+        String state = userStates.getOrDefault(user.getUid(), "none");
+        
+        switch (state) {
+            case "friends":
+                holder.btnAddFriend.setText(R.string.friends_label);
+                holder.btnAddFriend.setEnabled(false);
+                holder.btnAddFriend.setAlpha(0.5f);
+                holder.itemView.setOnClickListener(v -> {
+                    if (listener != null) listener.onUserClick(user);
+                });
+                break;
+            case "sent":
+                holder.btnAddFriend.setText(R.string.request_sent);
+                holder.btnAddFriend.setEnabled(false);
+                holder.btnAddFriend.setAlpha(0.7f);
+                holder.itemView.setOnClickListener(null);
+                break;
+            case "received":
+                holder.btnAddFriend.setText(R.string.accept_friend);
+                holder.btnAddFriend.setEnabled(true);
+                holder.btnAddFriend.setAlpha(1.0f);
+                holder.itemView.setOnClickListener(null);
+                break;
+            default: // none
+                holder.btnAddFriend.setText(R.string.add_friend);
+                holder.btnAddFriend.setEnabled(true);
+                holder.btnAddFriend.setAlpha(1.0f);
+                holder.itemView.setOnClickListener(null);
+                break;
+        }
 
         holder.btnAddFriend.setOnClickListener(v -> {
             if (addFriendListener != null) {
                 addFriendListener.onAddFriendClick(user);
             }
         });
+    }
+
+    private void displayAvatar(ImageView imageView, String imageSource) {
+        if (imageSource != null && !imageSource.isEmpty()) {
+            if (imageSource.startsWith("http")) {
+                // URL cũ
+                Glide.with(imageView.getContext())
+                        .load(imageSource)
+                        .placeholder(R.drawable.ic_person)
+                        .into(imageView);
+            } else {
+                // Base64 mới
+                try {
+                    byte[] imageBytes = Base64.decode(imageSource, Base64.DEFAULT);
+                    Glide.with(imageView.getContext())
+                            .asBitmap()
+                            .load(imageBytes)
+                            .placeholder(R.drawable.ic_person)
+                            .diskCacheStrategy(DiskCacheStrategy.ALL)
+                            .into(imageView);
+                } catch (Exception e) {
+                    imageView.setImageResource(R.drawable.ic_person);
+                }
+            }
+        } else {
+            imageView.setImageResource(R.drawable.ic_person);
+        }
     }
 
     @Override
