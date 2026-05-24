@@ -2,44 +2,25 @@ package com.dano.chatapp;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.ImageView;
-import android.widget.Toast;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
-import com.bumptech.glide.Glide;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.imageview.ShapeableImageView;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private ShapeableImageView imgProfile;
-    private RecyclerView recyclerActiveUsers, recyclerRecentChats;
-    private RecentChatAdapter recentChatAdapter;
-    private HorizontalUserAdapter activeUserAdapter;
-    
-    private List<RecentChat> recentChatList;
-    private List<User> activeUserList;
+    private LinearLayout navChat, navContacts, navProfile;
+    private ImageView imgChat, imgContacts, imgProfile;
+    private TextView txtChat, txtContacts, txtProfile;
 
     private FirebaseAuth mAuth;
-    private DatabaseReference mDatabase;
-    private String currentUserId;
-    private static final String DATABASE_URL = "https://chatapp-20a5f5b5-default-rtdb.asia-southeast1.firebasedatabase.app";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,204 +34,94 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        currentUserId = mAuth.getUid();
-        mDatabase = FirebaseDatabase.getInstance(DATABASE_URL).getReference();
-
         initViews();
-        loadUserData();
-        loadActiveUsers();
-        loadRecentChats();
+        setupNavigation();
+
+        // Default fragment
+        if (savedInstanceState == null) {
+            loadFragment(new ChatFragment(), "chat");
+        }
     }
 
     private void initViews() {
-        imgProfile = findViewById(R.id.img_main_profile);
-        recyclerActiveUsers = findViewById(R.id.recycler_active_users);
-        recyclerRecentChats = findViewById(R.id.recycler_recent_chats);
+        navChat = findViewById(R.id.nav_chat);
+        navContacts = findViewById(R.id.nav_contacts);
+        navProfile = findViewById(R.id.nav_profile);
 
-        // Active Users setup (Friends)
-        activeUserList = new ArrayList<>();
-        activeUserAdapter = new HorizontalUserAdapter(activeUserList, user -> {
-            if (user.getUid() != null) {
-                openChat(user.getUid(), user.getName());
-            }
-        });
-        recyclerActiveUsers.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
-        recyclerActiveUsers.setAdapter(activeUserAdapter);
+        imgChat = findViewById(R.id.img_nav_chat);
+        imgContacts = findViewById(R.id.img_nav_contacts);
+        imgProfile = findViewById(R.id.img_nav_profile);
 
-        // Recent Chats setup
-        recentChatList = new ArrayList<>();
-        recentChatAdapter = new RecentChatAdapter(recentChatList, 
-            chat -> {
-                if (chat != null && chat.getUserId() != null) {
-                    openChat(chat.getUserId(), chat.getName());
-                }
-            },
-            chat -> showDeleteChatDialog(chat));
-        recyclerRecentChats.setLayoutManager(new LinearLayoutManager(this));
-        recyclerRecentChats.setAdapter(recentChatAdapter);
+        txtChat = findViewById(R.id.text_nav_chat);
+        txtContacts = findViewById(R.id.text_nav_contacts);
+        txtProfile = findViewById(R.id.text_nav_profile);
+    }
 
-        // Bottom Navigation Events
-        findViewById(R.id.nav_chat).setOnClickListener(v -> {
-            // Đã ở màn hình trò chuyện
-            recyclerRecentChats.smoothScrollToPosition(0);
+    private void setupNavigation() {
+        navChat.setOnClickListener(v -> {
+            loadFragment(new ChatFragment(), "chat");
+            updateNavUI("chat");
         });
 
-        findViewById(R.id.nav_contacts).setOnClickListener(v -> {
-            // Mở màn hình Danh bạ (Tìm kiếm người dùng)
-            startActivity(new Intent(MainActivity.this, UsersActivity.class));
+        navContacts.setOnClickListener(v -> {
+            loadFragment(new ContactsFragment(), "contacts");
+            updateNavUI("contacts");
         });
 
-        findViewById(R.id.nav_profile).setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+        navProfile.setOnClickListener(v -> {
+            loadFragment(new ProfileFragment(), "profile");
+            updateNavUI("profile");
         });
+    }
 
-        // Other Click Events
-        findViewById(R.id.fab_new_chat).setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, UsersActivity.class));
-        });
+    private void loadFragment(Fragment fragment, String tag) {
+        FragmentManager fm = getSupportFragmentManager();
+        FragmentTransaction ft = fm.beginTransaction();
         
-        imgProfile.setOnClickListener(v -> {
-            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
-        });
-
-        findViewById(R.id.img_menu).setOnClickListener(v -> {
-            Toast.makeText(this, "Menu", Toast.LENGTH_SHORT).show();
-        });
-    }
-
-    private void loadUserData() {
-        if (currentUserId == null) return;
-        mDatabase.child("users").child(currentUserId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                User user = snapshot.getValue(User.class);
-                if (user != null && !isFinishing()) {
-                    if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
-                        Glide.with(MainActivity.this)
-                                .load(user.getProfileImage())
-                                .placeholder(R.drawable.ic_person)
-                                .into(imgProfile);
-                    }
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void loadActiveUsers() {
-        if (currentUserId == null) return;
-        mDatabase.child("friends").child(currentUserId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                activeUserList.clear();
-                if (snapshot.exists()) {
-                    for (DataSnapshot ds : snapshot.getChildren()) {
-                        String friendId = ds.getKey();
-                        if (friendId != null) {
-                            fetchFriendInfo(friendId);
-                        }
-                    }
-                } else {
-                    activeUserAdapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void fetchFriendInfo(String friendId) {
-        mDatabase.child("users").child(friendId).addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                User user = snapshot.getValue(User.class);
-                if (user != null && user.getUid() != null) {
-                    boolean exists = false;
-                    for (User u : activeUserList) {
-                        if (u.getUid().equals(user.getUid())) {
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (!exists) {
-                        activeUserList.add(user);
-                        activeUserAdapter.notifyDataSetChanged();
-                    }
-                }
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void loadRecentChats() {
-        if (currentUserId == null) return;
-        mDatabase.child("chatlist").child(currentUserId).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                recentChatList.clear();
-                for (DataSnapshot ds : snapshot.getChildren()) {
-                    RecentChat chat = ds.getValue(RecentChat.class);
-                    if (chat != null) {
-                        if (chat.getUserId() == null) {
-                            chat.setUserId(ds.getKey());
-                        }
-                        recentChatList.add(chat);
-                    }
-                }
-                fetchRecentChatDetails();
-            }
-
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
-    }
-
-    private void fetchRecentChatDetails() {
-        if (recentChatList.isEmpty()) {
-            recentChatAdapter.notifyDataSetChanged();
+        // Check if fragment is already active
+        Fragment currentFragment = fm.findFragmentById(R.id.fragment_container);
+        if (currentFragment != null && currentFragment.getTag() != null && currentFragment.getTag().equals(tag)) {
             return;
         }
-        mDatabase.child("users").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                for (RecentChat chat : recentChatList) {
-                    if (chat.getUserId() != null) {
-                        DataSnapshot userDs = snapshot.child(chat.getUserId());
-                        if (userDs.exists()) {
-                            chat.setName(userDs.child("name").getValue(String.class));
-                            chat.setProfileImage(userDs.child("profileImage").getValue(String.class));
-                        }
-                    }
-                }
-                Collections.sort(recentChatList, (o1, o2) -> Long.compare(o2.getTimestamp(), o1.getTimestamp()));
-                recentChatAdapter.notifyDataSetChanged();
-            }
-            @Override
-            public void onCancelled(@NonNull DatabaseError error) {}
-        });
+
+        ft.replace(R.id.fragment_container, fragment, tag);
+        ft.commit();
     }
 
-    private void showDeleteChatDialog(RecentChat chat) {
-        if (chat == null || chat.getUserId() == null) return;
-        new AlertDialog.Builder(this)
-                .setTitle("Xóa cuộc trò chuyện")
-                .setMessage("Bạn có chắc chắn muốn xóa tin nhắn với " + (chat.getName() != null ? chat.getName() : "người này") + "?")
-                .setPositiveButton("Xóa", (dialog, which) -> {
-                    mDatabase.child("chatlist").child(currentUserId).child(chat.getUserId()).removeValue();
-                })
-                .setNegativeButton("Hủy", null)
-                .show();
-    }
+    private void updateNavUI(String activeTab) {
+        int activeColor = ContextCompat.getColor(this, R.color.primary);
+        int inactiveColor = ContextCompat.getColor(this, R.color.text_grey);
 
-    private void openChat(String userId, String userName) {
-        if (userId == null) return;
-        Intent intent = new Intent(MainActivity.this, ChatActivity.class);
-        intent.putExtra("userId", userId);
-        intent.putExtra("userName", userName);
-        startActivity(intent);
+        // Reset all
+        imgChat.setColorFilter(inactiveColor);
+        txtChat.setTextColor(inactiveColor);
+        navChat.setBackground(null);
+
+        imgContacts.setColorFilter(inactiveColor);
+        txtContacts.setTextColor(inactiveColor);
+        navContacts.setBackground(null);
+
+        imgProfile.setColorFilter(inactiveColor);
+        txtProfile.setTextColor(inactiveColor);
+        navProfile.setBackground(null);
+
+        // Set active
+        switch (activeTab) {
+            case "chat":
+                imgChat.setColorFilter(activeColor);
+                txtChat.setTextColor(activeColor);
+                navChat.setBackgroundColor(0x1A007AFF); // Light blue tint
+                break;
+            case "contacts":
+                imgContacts.setColorFilter(activeColor);
+                txtContacts.setTextColor(activeColor);
+                navContacts.setBackgroundColor(0x1A007AFF);
+                break;
+            case "profile":
+                imgProfile.setColorFilter(activeColor);
+                txtProfile.setTextColor(activeColor);
+                navProfile.setBackgroundColor(0x1A007AFF);
+                break;
+        }
     }
 }
